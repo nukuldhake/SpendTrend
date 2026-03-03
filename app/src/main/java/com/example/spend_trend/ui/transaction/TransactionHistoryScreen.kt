@@ -21,23 +21,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.FakeData
 import com.example.spend_trend.ui.theme.*
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import com.example.spend_trend.ui.theme.categoryIcon   // adjust package if you put it elsewhere
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
-
 @Composable
 fun TransactionHistoryScreen(
     snackbarHostState: SnackbarHostState
 ) {
-    // Wrap FakeData.transactions in mutableStateListOf for proper recomposition
+    // Use mutableStateListOf so changes trigger recomposition
     val transactions = remember { mutableStateListOf(*FakeData.transactions.toTypedArray()) }
 
     var selectedFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     var selectedRange by remember { mutableStateOf(DateRangeFilter.ALL_TIME) }
     var showRangePicker by remember { mutableStateOf(false) }
+
+    // State for edit bottom sheet
+    var selectedEditTx by remember { mutableStateOf<TransactionUi?>(null) }
 
     val today = LocalDate.now()
 
@@ -141,7 +142,7 @@ fun TransactionHistoryScreen(
                                         }
                                     },
                                     onEdit = {
-                                        // TODO: Open edit bottom sheet
+                                        selectedEditTx = tx  // ← opens edit sheet for this transaction
                                     }
                                 )
                             }
@@ -151,6 +152,7 @@ fun TransactionHistoryScreen(
         }
     }
 
+    // Range picker bottom sheet
     if (showRangePicker) {
         ModalBottomSheet(onDismissRequest = { showRangePicker = false }) {
             Column(Modifier.padding(16.dp)) {
@@ -183,7 +185,26 @@ fun TransactionHistoryScreen(
             }
         }
     }
+
+    // Edit bottom sheet – opens when swiping left
+    if (selectedEditTx != null) {
+        EditTransactionBottomSheet(
+            transaction = selectedEditTx!!,
+            onUpdate = { updated ->
+                val index = transactions.indexOf(selectedEditTx)
+                if (index != -1) {
+                    transactions[index] = updated
+                }
+                selectedEditTx = null
+            },
+            onDismiss = { selectedEditTx = null }
+        )
+    }
 }
+
+// Keep all your other composables here (SummaryRow, SummaryItem, TransactionRow, EmptyTransactionsPlaceholder, FilterRow, etc.)
+
+// SwipeableTransactionRow (only ONE copy – make sure no duplicates)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeableTransactionRow(
@@ -207,7 +228,7 @@ fun SwipeableTransactionRow(
         }
     )
 
-    // Reset state when dismissed to avoid stuck background
+    // Reset state after dismiss to avoid stuck background
     LaunchedEffect(dismissState.currentValue) {
         if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
             dismissState.reset()
@@ -257,6 +278,8 @@ fun SwipeableTransactionRow(
         TransactionRow(transaction)
     }
 }
+
+// ... (keep all your other functions: SummaryRow, SummaryItem, TransactionRow, EmptyTransactionsPlaceholder, FilterRow, formatWithComma, data classes, enums, exportCsv)
 @Composable
 fun SummaryRow(income: Int, expense: Int, net: Int) {
     ElevatedCard(

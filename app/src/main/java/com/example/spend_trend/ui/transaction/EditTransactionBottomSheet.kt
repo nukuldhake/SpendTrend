@@ -59,9 +59,22 @@ fun EditTransactionBottomSheet(
                             Icon(Icons.Default.Close, contentDescription = "Close")
                         }
                     },
+                    actions = {
+                        IconButton(onClick = {
+                            // TODO: later show delete confirmation dialog
+                            onDismiss()
+                        }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             },
