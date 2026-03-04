@@ -9,29 +9,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.spend_trend.ui.theme.ThemeMode
-import com.example.spend_trend.ui.theme.ThemePreferences
+import com.example.spend_trend.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
-    var selectedTheme by remember { mutableStateOf(ThemePreferences.themeMode) }
-    var autoTrackingEnabled by remember { mutableStateOf(true) } // fake for now
+    var autoTrackingEnabled by remember { mutableStateOf(true) } // fake state for now
     var notificationsEnabled by remember { mutableStateOf(true) }
     var selectedCurrency by remember { mutableStateOf("INR") }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -42,61 +32,10 @@ fun SettingsScreen() {
         ) {
             item {
                 Text(
-                    text = "Appearance",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Theme", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            FilterChip(
-                                selected = selectedTheme == ThemeMode.LIGHT,
-                                onClick = {
-                                    selectedTheme = ThemeMode.LIGHT
-                                    ThemePreferences.themeMode = ThemeMode.LIGHT
-                                },
-                                label = { Text("Light") }
-                            )
-                            FilterChip(
-                                selected = selectedTheme == ThemeMode.DARK,
-                                onClick = {
-                                    selectedTheme = ThemeMode.DARK
-                                    ThemePreferences.themeMode = ThemeMode.DARK
-                                },
-                                label = { Text("Dark") }
-                            )
-                            FilterChip(
-                                selected = selectedTheme == ThemeMode.SYSTEM,
-                                onClick = {
-                                    selectedTheme = ThemeMode.SYSTEM
-                                    ThemePreferences.themeMode = ThemeMode.SYSTEM
-                                },
-                                label = { Text("System") }
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text(
                     text = "Automation",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                 )
             }
 
@@ -112,9 +51,9 @@ fun SettingsScreen() {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text("Auto-track from SMS", style = MaterialTheme.typography.titleMedium)
+                                Text("Auto-track transactions", style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    "Read bank alerts to add transactions automatically",
+                                    "Read bank SMS & emails to add entries automatically",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -135,7 +74,7 @@ fun SettingsScreen() {
                             Column {
                                 Text("Notifications", style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    "Get alerts for overspending or budget limits",
+                                    "Get alerts for budget limits & unusual spending",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -180,7 +119,7 @@ fun SettingsScreen() {
                                     onValueChange = { },
                                     readOnly = true,
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                    modifier = Modifier.menuAnchor()
+                                    modifier = Modifier.menuAnchor().width(120.dp)
                                 )
                                 ExposedDropdownMenu(
                                     expanded = expanded,
@@ -202,19 +141,27 @@ fun SettingsScreen() {
                         Spacer(Modifier.height(16.dp))
 
                         Button(
-                            onClick = { /* TODO: export CSV or JSON */ },
+                            onClick = { /* TODO: implement real export */ },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Export Data")
+                            Text("Export Data (CSV)")
                         }
                     }
                 }
             }
 
             item {
-                Spacer(Modifier.height(80.dp)) // bottom padding
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = "Your data stays on your device. We never share or upload personal information.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(Modifier.height(80.dp))
             }
         }
     }

@@ -27,6 +27,7 @@ import com.example.spend_trend.ui.budgets.BudgetsScreen
 import com.example.spend_trend.ui.copilot.CopilotScreen
 import com.example.spend_trend.ui.dashboard.DashboardScreen
 import com.example.spend_trend.ui.forecast.ForecastScreen
+import com.example.spend_trend.ui.settings.SettingsScreen
 import com.example.spend_trend.ui.transaction.AddTransactionScreen
 import com.example.spend_trend.ui.transaction.TransactionHistoryScreen
 import kotlinx.coroutines.launch
@@ -58,9 +59,12 @@ fun AppScaffold() {
                 HorizontalDivider(thickness = 1.dp)
 
                 DrawerItem(Icons.Default.Person, "Profile") { scope.launch { drawerState.close() } }
-                DrawerItem(Icons.Default.Settings, "Settings") { scope.launch { drawerState.close() } }
                 DrawerItem(Icons.Default.Help, "Help") { scope.launch { drawerState.close() } }
                 DrawerItem(Icons.Default.Email, "Contact Us") { scope.launch { drawerState.close() } }
+                DrawerItem(Icons.Default.Settings, "Settings") {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("settings") // add this route
+                }
 
                 HorizontalDivider(thickness = 1.dp)
                 Spacer(Modifier.height(8.dp))
@@ -98,18 +102,19 @@ fun AppScaffold() {
                                     BottomNavItem.Budgets.route -> Icons.Default.Savings
                                     BottomNavItem.Forecast.route -> Icons.Default.AutoGraph
                                     BottomNavItem.Copilot.route -> Icons.Default.SmartToy
+                                    "settings" -> Icons.Default.Settings   // ← added for Settings page
                                     else -> Icons.Default.Info
                                 },
                                 contentDescription = null,
-                                tint = colorScheme.primary,  // ← colored icon
+                                tint = colorScheme.primary,
                                 modifier = Modifier.size(28.dp)
                             )
 
                             Text(
                                 text = getScreenTitle(currentDestination?.route),
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,           // ← bold weight
-                                    color = colorScheme.primary             // ← colored title
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.primary
                                 ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -223,6 +228,10 @@ fun AppScaffold() {
 
                 composable(BottomNavItem.Copilot.route) {
                     CopilotScreen()
+                }
+
+                composable("settings") {
+                    SettingsScreen()
                 }
 
                 composable("add_transaction") {
@@ -341,5 +350,6 @@ private fun getScreenTitle(route: String?): String = when (route) {
     BottomNavItem.Forecast.route -> "Forecast"
     BottomNavItem.Copilot.route -> "Copilot"
     "add_transaction" -> "Add Transaction"
+    "settings" -> "Settings"
     else -> "SpendTrend"
 }
