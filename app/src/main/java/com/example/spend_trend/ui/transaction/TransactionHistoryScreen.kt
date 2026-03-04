@@ -16,10 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.spend_trend.ui.FakeData
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -30,8 +33,14 @@ import java.time.format.DateTimeFormatter
 fun TransactionHistoryScreen(
     snackbarHostState: SnackbarHostState
 ) {
-    // Use mutableStateListOf so changes trigger recomposition
-    val transactions = remember { mutableStateListOf(*FakeData.transactions.toTypedArray()) }
+    val context = LocalContext.current
+    val viewModel: TransactionViewModel = viewModel(
+        factory = TransactionViewModelFactory(
+            repository = TransactionRepository(AppDatabase.getDatabase(context).transactionDao())
+        )
+    )
+
+    val allTx by viewModel.allTransactions.collectAsState(initial = emptyList())
 
     var selectedFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     var selectedRange by remember { mutableStateOf(DateRangeFilter.ALL_TIME) }
@@ -42,7 +51,7 @@ fun TransactionHistoryScreen(
 
     val today = LocalDate.now()
 
-    val filtered = transactions
+    val filtered = allTx
         .filter {
             when (selectedFilter) {
                 TransactionFilter.ALL -> true
@@ -125,24 +134,20 @@ fun TransactionHistoryScreen(
                                 SwipeableTransactionRow(
                                     transaction = tx,
                                     onDelete = {
-                                        val index = transactions.indexOf(tx)
-                                        if (index != -1) {
-                                            transactions.removeAt(index)
-
-                                            coroutineScope.launch {
-                                                val result = snackbarHostState.showSnackbar(
-                                                    message = "Transaction deleted",
-                                                    actionLabel = "Undo",
-                                                    duration = SnackbarDuration.Long
-                                                )
-                                                if (result == SnackbarResult.ActionPerformed) {
-                                                    transactions.add(index, tx)
-                                                }
+                                        viewModel.deleteTransaction(tx)
+                                        coroutineScope.launch {
+                                            val result = snackbarHostState.showSnackbar(
+                                                message = "Transaction deleted",
+                                                actionLabel = "Undo",
+                                                duration = SnackbarDuration.Long
+                                            )
+                                            if (result == SnackbarResult.ActionPerformed) {
+                                                viewModel.addTransaction(tx)  // undo
                                             }
                                         }
                                     },
                                     onEdit = {
-                                        selectedEditTx = tx  // ← opens edit sheet for this transaction
+                                        selectedEditTx = tx
                                     }
                                 )
                             }
@@ -152,15 +157,11 @@ fun TransactionHistoryScreen(
         }
     }
 
-    // Range picker bottom sheet
+    // Range picker
     if (showRangePicker) {
         ModalBottomSheet(onDismissRequest = { showRangePicker = false }) {
             Column(Modifier.padding(16.dp)) {
-                Text(
-                    "Select time range",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Text("Select time range", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(16.dp))
                 DateRangeFilter.values().forEach { range ->
                     ListItem(
@@ -186,25 +187,18 @@ fun TransactionHistoryScreen(
         }
     }
 
-    // Edit bottom sheet – opens when swiping left
+    // Edit bottom sheet
     if (selectedEditTx != null) {
         EditTransactionBottomSheet(
             transaction = selectedEditTx!!,
             onUpdate = { updated ->
-                val index = transactions.indexOf(selectedEditTx)
-                if (index != -1) {
-                    transactions[index] = updated
-                }
+                viewModel.updateTransaction(updated)
                 selectedEditTx = null
             },
             onDismiss = { selectedEditTx = null }
         )
     }
 }
-
-// Keep all your other composables here (SummaryRow, SummaryItem, TransactionRow, EmptyTransactionsPlaceholder, FilterRow, etc.)
-
-// SwipeableTransactionRow (only ONE copy – make sure no duplicates)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeableTransactionRow(

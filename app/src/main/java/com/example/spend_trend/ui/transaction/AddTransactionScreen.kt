@@ -12,21 +12,25 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.example.spend_trend.ui.FakeData
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.TransactionRepository
+
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +40,14 @@ fun AddTransactionScreen(
     onViewAdded: () -> Unit = {},
     snackbarHostState: SnackbarHostState? = null
 ) {
+    // ViewModel setup
+    val context = LocalContext.current
+    val viewModel: TransactionViewModel = viewModel(
+        factory = TransactionViewModelFactory(
+            repository = TransactionRepository(AppDatabase.getDatabase(context).transactionDao())
+        )
+    )
+
     var description by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var isIncome by remember { mutableStateOf(false) }
@@ -55,23 +67,17 @@ fun AddTransactionScreen(
             FloatingActionButton(
                 onClick = {
                     if (isValid) {
-                        val newTx = NewTransaction(
-                            description = description,
-                            amount = if (isIncome) amount else -amount,
-                            category = selectedCategory!!,
-                            date = transactionDate
-                        )
-
-                        // Fake save
-                        val uiTx = TransactionUi(
+                        val newUi = TransactionUi(
                             title = description.trim().ifEmpty { "Transaction" },
                             category = selectedCategory!!,
                             amount = if (isIncome) amount.toInt() else -amount.toInt(),
                             date = transactionDate
                         )
-                        FakeData.addTransaction(uiTx)
 
-                        // Snackbar
+                        // Save using ViewModel (real DB)
+                        viewModel.addTransaction(newUi)
+
+                        // Show success snackbar
                         snackbarHostState?.let { host ->
                             coroutineScope.launch {
                                 host.showSnackbar(
@@ -97,14 +103,14 @@ fun AddTransactionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = padding.calculateTopPadding().coerceAtLeast(0.dp) - 8.dp, // ← pull content up closer
+                    top = padding.calculateTopPadding().coerceAtLeast(0.dp) - 8.dp,
                     bottom = padding.calculateBottomPadding(),
                     start = padding.calculateLeftPadding(LayoutDirection.Ltr),
                     end = padding.calculateRightPadding(LayoutDirection.Ltr)
                 )
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp) // slightly tighter spacing
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Income / Expense toggle
             Row(
@@ -257,7 +263,6 @@ fun AddTransactionScreen(
             }
 
             Spacer(Modifier.weight(1f))
-
         }
     }
 

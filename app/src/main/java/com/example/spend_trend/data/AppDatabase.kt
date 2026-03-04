@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(entities = [TransactionEntity::class], version = 1, exportSchema = false)
-@TypeConverters(Converters::class)  // we'll add this in next step if needed
+@TypeConverters(com.example.spend_trend.data.Converters::class)  // we'll add this in next step if needed
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun transactionDao(): TransactionDao
