@@ -27,6 +27,7 @@ import com.example.spend_trend.ui.budgets.BudgetsScreen
 import com.example.spend_trend.ui.copilot.CopilotScreen
 import com.example.spend_trend.ui.dashboard.DashboardScreen
 import com.example.spend_trend.ui.forecast.ForecastScreen
+import com.example.spend_trend.ui.profile.ProfileScreen
 import com.example.spend_trend.ui.settings.SettingsScreen
 import com.example.spend_trend.ui.transaction.AddTransactionScreen
 import com.example.spend_trend.ui.transaction.TransactionHistoryScreen
@@ -58,7 +59,10 @@ fun AppScaffold() {
                 DrawerHeader()
                 HorizontalDivider(thickness = 1.dp)
 
-                DrawerItem(Icons.Default.Person, "Profile") { scope.launch { drawerState.close() } }
+                DrawerItem(Icons.Default.Person, "Profile") {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("profile")
+                }
                 DrawerItem(Icons.Default.Help, "Help") { scope.launch { drawerState.close() } }
                 DrawerItem(Icons.Default.Email, "Contact Us") { scope.launch { drawerState.close() } }
                 DrawerItem(Icons.Default.Settings, "Settings") {
@@ -102,7 +106,8 @@ fun AppScaffold() {
                                     BottomNavItem.Budgets.route -> Icons.Default.Savings
                                     BottomNavItem.Forecast.route -> Icons.Default.AutoGraph
                                     BottomNavItem.Copilot.route -> Icons.Default.SmartToy
-                                    "settings" -> Icons.Default.Settings   // ← added for Settings page
+                                    "settings" -> Icons.Default.Settings
+                                    "profile" -> Icons.Default.Person
                                     else -> Icons.Default.Info
                                 },
                                 contentDescription = null,
@@ -230,6 +235,10 @@ fun AppScaffold() {
                     CopilotScreen()
                 }
 
+                composable("profile") {
+                    ProfileScreen()
+                }
+
                 composable("settings") {
                     SettingsScreen()
                 }
@@ -350,6 +359,7 @@ private fun getScreenTitle(route: String?): String = when (route) {
     BottomNavItem.Forecast.route -> "Forecast"
     BottomNavItem.Copilot.route -> "Copilot"
     "add_transaction" -> "Add Transaction"
+    "profile" -> "Profile"
     "settings" -> "Settings"
     else -> "SpendTrend"
 }

@@ -22,13 +22,13 @@ fun SettingsScreen() {
 
     Scaffold(
 
-    ) { innerPadding ->
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp)
+                .padding(it),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item {
                 Text(
