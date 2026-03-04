@@ -61,7 +61,7 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(vertical = 16.dp)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 BalanceCard(balance, summary.income, summary.expense)
@@ -69,7 +69,13 @@ fun DashboardScreen(
 
             item {
                 TodaySpendCard(todaySpend)
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
             }
+
 
             item {
                 Text(
@@ -97,7 +103,13 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                         accentColor = MaterialTheme.colorScheme.errorContainer
                     )
+
                 }
+                Spacer(Modifier.height(22.dp))
+                HorizontalDivider(
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
             }
 
             item {
@@ -105,11 +117,17 @@ fun DashboardScreen(
             }
 
             item {
-                BudgetProgressRing(0.68f) // fake %, later connect real
+                BudgetProgressRing(0.68f)
+
             }
 
             item {
                 MotivationalTip()
+                Spacer(Modifier.height(22.dp))
+                HorizontalDivider(
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
             }
 
             item {
@@ -126,7 +144,7 @@ fun DashboardScreen(
                         Text("View all")
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+
             }
 
             if (recentTx.isEmpty()) {
@@ -150,51 +168,6 @@ fun DashboardScreen(
     }
 }
 
-
-// Quick Add Chips (now just UI – tap does nothing yet, later prefill add screen)
-@Composable
-fun QuickAddChips() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        QuickAddChip("Food", -200)
-        QuickAddChip("Transport", -100)
-        QuickAddChip("Shopping", -500)
-        QuickAddChip("Salary", 5000)
-        QuickAddChip("Coffee", -80)
-    }
-}
-
-@Composable
-private fun QuickAddChip(label: String, amount: Int) {
-    FilterChip(
-        selected = false,
-        onClick = { /* TODO: navigate to add with prefill */ },
-        label = { Text("$label ${if (amount > 0) "+" else ""}₹${amount.absoluteValue}") },
-        leadingIcon = {
-            Icon(
-                imageVector = when (label) {
-                    "Food" -> Icons.Default.Restaurant
-                    "Transport" -> Icons.Default.DirectionsCar
-                    "Shopping" -> Icons.Default.ShoppingBag
-                    "Salary" -> Icons.Default.AttachMoney
-                    else -> Icons.Default.Coffee
-                },
-                contentDescription = null,
-                tint = if (amount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        )
-    )
-}
-
-// Today’s Spend
 @Composable
 fun TodaySpendCard(todaySpend: Int) {
     Card(
