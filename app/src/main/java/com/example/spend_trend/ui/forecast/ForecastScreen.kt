@@ -1,5 +1,6 @@
 package com.example.spend_trend.ui.forecast
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ForecastScreen() {
     // Fake forecast data – later from ML model
@@ -61,11 +63,11 @@ fun ForecastScreen() {
     Scaffold(
         containerColor = colorScheme.background,
         contentColor = colorScheme.onBackground
-    ) { innerPadding ->
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(vertical = 16.dp)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)

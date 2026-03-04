@@ -102,12 +102,7 @@ fun AddTransactionScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    top = padding.calculateTopPadding().coerceAtLeast(0.dp) - 8.dp,
-                    bottom = padding.calculateBottomPadding(),
-                    start = padding.calculateLeftPadding(LayoutDirection.Ltr),
-                    end = padding.calculateRightPadding(LayoutDirection.Ltr)
-                )
+                .padding(vertical = 16.dp)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp)

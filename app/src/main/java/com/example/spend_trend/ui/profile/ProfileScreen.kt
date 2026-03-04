@@ -1,5 +1,6 @@
 package com.example.spend_trend.ui.profile
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.delay
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen() {
@@ -37,7 +39,7 @@ fun ProfileScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(it),
+                .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Avatar – tappable

@@ -1,5 +1,6 @@
 package com.example.spend_trend.ui.budgets
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.theme.*
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BudgetsScreen() {
     // Fake data – replace with real ViewModel later
@@ -34,11 +36,11 @@ fun BudgetsScreen() {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentColor = MaterialTheme.colorScheme.onBackground
-    ) { innerPadding ->
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(vertical = 16.dp)
                 .padding(horizontal = 16.dp)
 
         ) {
