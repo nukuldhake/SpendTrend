@@ -24,9 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.*
 import com.example.spend_trend.ui.budgets.BudgetsScreen
+import com.example.spend_trend.ui.contact.ContactUsScreen
 import com.example.spend_trend.ui.copilot.CopilotScreen
 import com.example.spend_trend.ui.dashboard.DashboardScreen
 import com.example.spend_trend.ui.forecast.ForecastScreen
+import com.example.spend_trend.ui.help.HelpScreen
 import com.example.spend_trend.ui.profile.ProfileScreen
 import com.example.spend_trend.ui.settings.SettingsScreen
 import com.example.spend_trend.ui.transaction.AddTransactionScreen
@@ -63,11 +65,20 @@ fun AppScaffold() {
                     scope.launch { drawerState.close() }
                     navController.navigate("profile")
                 }
-                DrawerItem(Icons.Default.Help, "Help") { scope.launch { drawerState.close() } }
-                DrawerItem(Icons.Default.Email, "Contact Us") { scope.launch { drawerState.close() } }
+
                 DrawerItem(Icons.Default.Settings, "Settings") {
                     scope.launch { drawerState.close() }
-                    navController.navigate("settings") // add this route
+                    navController.navigate("settings")
+                }
+
+                DrawerItem(Icons.Default.Help, "Help") {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("help")
+                }
+
+                DrawerItem(Icons.Default.Email, "Contact Us") {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("contact")
                 }
 
                 HorizontalDivider(thickness = 1.dp)
@@ -108,6 +119,9 @@ fun AppScaffold() {
                                     BottomNavItem.Copilot.route -> Icons.Default.SmartToy
                                     "settings" -> Icons.Default.Settings
                                     "profile" -> Icons.Default.Person
+                                    "help" -> Icons.Default.Help
+                                    "contact" -> Icons.Default.Email
+
                                     else -> Icons.Default.Info
                                 },
                                 contentDescription = null,
@@ -243,6 +257,9 @@ fun AppScaffold() {
                     SettingsScreen()
                 }
 
+                composable("help") { HelpScreen() }
+                composable("contact") { ContactUsScreen() }
+
                 composable("add_transaction") {
                     AddTransactionScreen(
                         onSave = { newTx ->
@@ -361,5 +378,7 @@ private fun getScreenTitle(route: String?): String = when (route) {
     "add_transaction" -> "Add Transaction"
     "profile" -> "Profile"
     "settings" -> "Settings"
+    "help"-> "Help"
+    "contact" -> "Contact Us"
     else -> "SpendTrend"
 }
