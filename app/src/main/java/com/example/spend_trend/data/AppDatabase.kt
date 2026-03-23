@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [TransactionEntity::class], version = 1, exportSchema = false)
+@Database(entities = [TransactionEntity::class, BudgetEntity::class], version = 1, exportSchema = false)
 @TypeConverters(com.example.spend_trend.data.Converters::class)  // we'll add this in next step if needed
 abstract class AppDatabase : RoomDatabase() {
 
