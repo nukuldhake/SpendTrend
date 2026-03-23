@@ -6,11 +6,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [TransactionEntity::class, BudgetEntity::class], version = 1, exportSchema = false)
-@TypeConverters(com.example.spend_trend.data.Converters::class)  // we'll add this in next step if needed
+@Database(entities = [TransactionEntity::class, BudgetEntity::class], version = 2, exportSchema = false)
+@TypeConverters(com.example.spend_trend.data.Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun transactionDao(): TransactionDao
+    abstract fun budgetDao(): BudgetDao
 
     companion object {
         @Volatile
@@ -23,7 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "spendtrend_database"
                 )
-                    .fallbackToDestructiveMigration() // only for dev - removes old data on version change
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
