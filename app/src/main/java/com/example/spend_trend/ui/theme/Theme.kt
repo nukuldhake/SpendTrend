@@ -1,20 +1,84 @@
 package com.example.spend_trend.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-// ────────────────────────────────────────────────
-// SpendTrend Theme – Light + Dark + System support
-// Dynamic colors optional (default: false for brand consistency)
-// ────────────────────────────────────────────────
+// ════════════════════════════════════════════════
+//  Dark Color Scheme — The Hero
+// ════════════════════════════════════════════════
+private val DarkColors = darkColorScheme(
+    primary             = Primary,
+    onPrimary           = OnPrimary,
+    primaryContainer    = PrimaryContainer,
+    onPrimaryContainer  = OnPrimaryContainer,
+    secondary           = Secondary,
+    onSecondary         = OnSecondary,
+    secondaryContainer  = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
+    tertiary            = Tertiary,
+    onTertiary          = OnTertiary,
+    tertiaryContainer   = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
+    error               = Error,
+    onError             = OnError,
+    errorContainer      = ErrorContainer,
+    onErrorContainer    = OnErrorContainer,
+    background          = DarkBackground,
+    onBackground        = DarkOnSurface,
+    surface             = DarkSurface,
+    onSurface           = DarkOnSurface,
+    surfaceVariant      = DarkSurfaceVariant,
+    onSurfaceVariant    = DarkOnSurfaceVariant,
+    outline             = DarkOutline,
+    outlineVariant      = DarkOutlineVariant,
+    inverseSurface      = LightSurface,
+    inverseOnSurface    = LightOnSurface,
+    inversePrimary      = Primary,
+)
+
+// ════════════════════════════════════════════════
+//  Light Color Scheme
+// ════════════════════════════════════════════════
+private val LightColors = lightColorScheme(
+    primary             = Color(0xFF059669), // slightly deeper for contrast on white
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFD1FAE5),
+    onPrimaryContainer  = Color(0xFF064E3B),
+    secondary           = Secondary,
+    onSecondary         = OnSecondary,
+    secondaryContainer  = Color(0xFFDBEAFE),
+    onSecondaryContainer = Color(0xFF1E3A5F),
+    tertiary            = Tertiary,
+    onTertiary          = OnTertiary,
+    tertiaryContainer   = Color(0xFFEDE9FE),
+    onTertiaryContainer = Color(0xFF3B1F7E),
+    error               = Color(0xFFDC2626),
+    onError             = Color(0xFFFFFFFF),
+    errorContainer      = Color(0xFFFEE2E2),
+    onErrorContainer    = Color(0xFF991B1B),
+    background          = LightBackground,
+    onBackground        = LightOnSurface,
+    surface             = LightSurface,
+    onSurface           = LightOnSurface,
+    surfaceVariant      = LightSurfaceVariant,
+    onSurfaceVariant    = LightOnSurfaceVariant,
+    outline             = LightOutline,
+    outlineVariant      = LightOutlineVariant,
+    inverseSurface      = InverseSurface,
+    inverseOnSurface    = InverseOnSurface,
+    inversePrimary      = InversePrimary,
+)
+
 @Composable
 fun SpendTrendTheme(
     content: @Composable () -> Unit
@@ -25,71 +89,20 @@ fun SpendTrendTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    val context = LocalContext.current
-    val dynamicColor = false // ← set to true only if you want wallpaper-based theme (not recommended for finance)
+    val colorScheme = if (darkTheme) DarkColors else LightColors
 
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val dynamicScheme = if (darkTheme) {
-                dynamicDarkColorScheme(context)
-            } else {
-                dynamicLightColorScheme(context)
+    // Edge-to-edge: tint status bar & nav bar
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
             }
-            // Hybrid: keep SpendTrend brand colors for primary/actions, let dynamic influence neutrals
-            dynamicScheme.copy(
-                primary = Primary,
-                onPrimary = OnPrimary,
-                primaryContainer = PrimaryContainer,
-                onPrimaryContainer = OnPrimaryContainer,
-                secondary = Secondary,
-                onSecondary = OnSecondary,
-                tertiary = Color(0xFF8B5CF6), // optional accent (purple for charts/graphs)
-                error = Error,
-                onError = OnError,
-                background = if (darkTheme) Color(0xFF0F172A) else Background,
-                surface = if (darkTheme) Color(0xFF1E293B) else Surface,
-                surfaceVariant = if (darkTheme) Color(0xFF334155) else SurfaceVariant,
-                onSurface = if (darkTheme) Color(0xFFF1F5F9) else OnSurface,
-                onSurfaceVariant = if (darkTheme) Color(0xFFCBD5E1) else OnSurfaceVariant,
-                outline = if (darkTheme) Color(0xFF475569) else Outline
-            )
         }
-
-        darkTheme -> darkColorScheme(
-            primary = Primary,
-            onPrimary = OnPrimary,
-            primaryContainer = PrimaryContainer,
-            onPrimaryContainer = OnPrimaryContainer,
-            secondary = Secondary,
-            onSecondary = OnSecondary,
-            tertiary = Color(0xFF8B5CF6),
-            background = Color(0xFF0F172A),        // dark slate background
-            surface = Color(0xFF1E293B),
-            surfaceVariant = Color(0xFF334155),
-            onSurface = Color(0xFFF1F5F9),
-            onSurfaceVariant = Color(0xFFCBD5E1),
-            error = Error,
-            onError = OnError,
-            outline = Color(0xFF475569)
-        )
-
-        else -> lightColorScheme(
-            primary = Primary,
-            onPrimary = OnPrimary,
-            primaryContainer = PrimaryContainer,
-            onPrimaryContainer = OnPrimaryContainer,
-            secondary = Secondary,
-            onSecondary = OnSecondary,
-            tertiary = Color(0xFF8B5CF6),
-            background = Background,
-            surface = Surface,
-            surfaceVariant = SurfaceVariant,
-            onSurface = OnSurface,
-            onSurfaceVariant = OnSurfaceVariant,
-            error = Error,
-            onError = OnError,
-            outline = Outline
-        )
     }
 
     MaterialTheme(
