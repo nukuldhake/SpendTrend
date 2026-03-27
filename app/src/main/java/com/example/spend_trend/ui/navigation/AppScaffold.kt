@@ -1,6 +1,9 @@
 package com.example.spend_trend.ui.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -13,16 +16,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.BudgetRepository
+import com.example.spend_trend.ui.budgets.AddBudgetScreen
+import com.example.spend_trend.ui.budgets.BudgetDetailScreen
+import com.example.spend_trend.ui.budgets.BudgetViewModel
+import com.example.spend_trend.ui.budgets.BudgetViewModelFactory
 import com.example.spend_trend.ui.budgets.BudgetsScreen
 import com.example.spend_trend.ui.contact.ContactUsScreen
 import com.example.spend_trend.ui.copilot.CopilotScreen
@@ -33,9 +43,8 @@ import com.example.spend_trend.ui.profile.ProfileScreen
 import com.example.spend_trend.ui.settings.SettingsScreen
 import com.example.spend_trend.ui.transaction.AddTransactionScreen
 import com.example.spend_trend.ui.transaction.TransactionHistoryScreen
+import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
-import com.example.spend_trend.ui.theme.ThemePreferences
-import com.example.spend_trend.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,169 +55,62 @@ fun AppScaffold() {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-
-    // Drawer state
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-                drawerContentColor = MaterialTheme.colorScheme.onSurface
-            ) {
-                DrawerHeader()
-                HorizontalDivider(thickness = 1.dp)
-
-                DrawerItem(Icons.Default.Person, "Profile") {
+            DrawerContent(
+                onNavigate = { route ->
                     scope.launch { drawerState.close() }
-                    navController.navigate("profile")
-                }
-
-                DrawerItem(Icons.Default.Settings, "Settings") {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("settings")
-                }
-
-                DrawerItem(Icons.Default.Help, "Help") {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("help")
-                }
-
-                DrawerItem(Icons.Default.Email, "Contact Us") {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("contact")
-                }
-
-                HorizontalDivider(thickness = 1.dp)
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = "Theme",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)
-                )
-
-                ThemeOption("Light", ThemeMode.LIGHT)
-                ThemeOption("Dark", ThemeMode.DARK)
-                ThemeOption("System", ThemeMode.SYSTEM)
-
-                Spacer(Modifier.weight(1f))
-                DrawerItem(Icons.Default.Logout, "Log Out", color = MaterialTheme.colorScheme.error) {
-                    scope.launch { drawerState.close() }
-                }
-            }
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                    }
+                },
+                onLogout = { scope.launch { drawerState.close() } }
+            )
         }
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // Screen-specific icon with primary color
-                            Icon(
-                                imageVector = when (currentDestination?.route) {
-                                    BottomNavItem.Dashboard.route -> Icons.Default.Dashboard
-                                    BottomNavItem.Transactions.route -> Icons.Default.ReceiptLong
-                                    BottomNavItem.Budgets.route -> Icons.Default.Savings
-                                    BottomNavItem.Forecast.route -> Icons.Default.AutoGraph
-                                    BottomNavItem.Copilot.route -> Icons.Default.SmartToy
-                                    "settings" -> Icons.Default.Settings
-                                    "profile" -> Icons.Default.Person
-                                    "help" -> Icons.Default.Help
-                                    "contact" -> Icons.Default.Email
-
-                                    else -> Icons.Default.Info
-                                },
-                                contentDescription = null,
-                                tint = colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
-                            )
-
-                            Text(
-                                text = getScreenTitle(currentDestination?.route),
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = colorScheme.primary
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    },
-                    actions ={
-                        ProfileAvatar(
-                            initials = "N",
-                            onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.padding(end = 16.dp)
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,  // ← same shade as bottom bar (your request)
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                SpendTrendTopBar(
+                    currentRoute = currentDestination?.route,
+                    onDrawerOpen = { scope.launch { drawerState.open() } }
                 )
             },
             bottomBar = {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = 6.dp,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ) {
-                    listOf(
-                        BottomNavItem.Dashboard,
-                        BottomNavItem.Transactions,
-                        BottomNavItem.Budgets,
-                        BottomNavItem.Forecast,
-                        BottomNavItem.Copilot
-                    ).forEach { item ->
-                        val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo("dashboard") {
-                                        saveState = true
-                                        inclusive = false
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.contentDescription
-                                )
-                            },
-                            label = { Text(item.label) },
-                            alwaysShowLabel = false,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                selectedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                indicatorColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
+                SpendTrendBottomBar(
+                    currentDestination = currentDestination,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            popUpTo(Screen.Dashboard.route) {
+                                saveState = true
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
+                )
             },
             floatingActionButton = {
-                if (currentDestination?.route == BottomNavItem.Dashboard.route) {
+                val route = currentDestination?.route
+                if (route == Screen.Dashboard.route || route == Screen.Budgets.route) {
                     FloatingActionButton(
-                        onClick = { navController.navigate("add_transaction") },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                        onClick = {
+                            if (route == Screen.Budgets.route) {
+                                navController.navigate(Screen.AddBudget.route)
+                            } else {
+                                navController.navigate(Screen.AddTransaction.route)
+                            }
+                        },
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.onPrimary
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Add new transaction"
+                            contentDescription = if (route == Screen.Budgets.route) "Add new budget" else "Add new transaction"
                         )
                     }
                 }
@@ -219,48 +121,55 @@ fun AppScaffold() {
 
             NavHost(
                 navController = navController,
-                startDestination = BottomNavItem.Dashboard.route,
-                modifier = Modifier.padding(innerPadding)
+                startDestination = Screen.Dashboard.route,
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = { fadeIn(animationSpec = tween(300)) },
+                exitTransition = { fadeOut(animationSpec = tween(200)) }
             ) {
-                composable(BottomNavItem.Dashboard.route) {
+                composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         onViewAllTransactions = {
-                            navController.navigate(BottomNavItem.Transactions.route) {
-                                popUpTo("dashboard") { saveState = true }
+                            navController.navigate(Screen.Transactions.route) {
+                                popUpTo(Screen.Dashboard.route) { saveState = true }
                                 launchSingleTop = true
                             }
                         }
                     )
                 }
 
-                composable(BottomNavItem.Transactions.route) {
+                composable(Screen.Transactions.route) {
                     TransactionHistoryScreen(snackbarHostState = snackbarHostState)
                 }
 
-                composable(BottomNavItem.Budgets.route) {
-                    BudgetsScreen()
+                composable(Screen.Budgets.route) {
+                    BudgetsScreen(
+                        onCardClick = { budgetId ->
+                            navController.navigate(Screen.BudgetDetail.createRoute(budgetId))
+                        },
+                        onAddBudget = { navController.navigate(Screen.AddBudget.route) }
+                    )
                 }
 
-                composable(BottomNavItem.Forecast.route) {
+                composable(Screen.Forecast.route) {
                     ForecastScreen()
                 }
 
-                composable(BottomNavItem.Copilot.route) {
+                composable(Screen.Copilot.route) {
                     CopilotScreen()
                 }
 
-                composable("profile") {
-                    ProfileScreen()
+                composable(Screen.Profile.route) {
+                    ProfileScreen(onBack = { navController.popBackStack() })
                 }
 
-                composable("settings") {
-                    SettingsScreen()
+                composable(Screen.Settings.route) {
+                    SettingsScreen(onBack = { navController.popBackStack() })
                 }
 
-                composable("help") { HelpScreen() }
-                composable("contact") { ContactUsScreen() }
+                composable(Screen.Help.route) { HelpScreen(onBack = { navController.popBackStack() }) }
+                composable(Screen.Contact.route) { ContactUsScreen(onBack = { navController.popBackStack() }) }
 
-                composable("add_transaction") {
+                composable(Screen.AddTransaction.route) {
                     AddTransactionScreen(
                         onSave = { newTx ->
                             coroutineScope.launch {
@@ -271,70 +180,257 @@ fun AppScaffold() {
                         snackbarHostState = snackbarHostState
                     )
                 }
+
+                // ── Budget Detail ──
+                composable(
+                    route = Screen.BudgetDetail.route,
+                    arguments = listOf(navArgument("budgetId") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val budgetId = backStackEntry.arguments?.getInt("budgetId") ?: 0
+                    val budgetVm: BudgetViewModel = viewModel(
+                        factory = BudgetViewModelFactory(
+                            BudgetRepository(AppDatabase.getDatabase(navController.context).budgetDao())
+                        )
+                    )
+                    BudgetDetailScreen(
+                        viewModel = budgetVm,
+                        budgetId = budgetId,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                // ── Add Budget ──
+                composable(Screen.AddBudget.route) {
+                    val budgetVm: BudgetViewModel = viewModel(
+                        factory = BudgetViewModelFactory(
+                            BudgetRepository(AppDatabase.getDatabase(navController.context).budgetDao())
+                        )
+                    )
+                    AddBudgetScreen(
+                        viewModel = budgetVm,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
 }
 
-// Circular profile avatar (placeholder)
+// ────────────────────────────────────────────────
+// Top App Bar
+// ────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SpendTrendTopBar(
+    currentRoute: String?,
+    onDrawerOpen: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = screenIcon(currentRoute),
+                    contentDescription = "Current screen icon",
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(Dimens.IconLg)
+                )
+                Text(
+                    text = screenTitle(currentRoute),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.primary
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        },
+        actions = {
+            ProfileAvatar(
+                initials = "N",
+                onClick = onDrawerOpen,
+                modifier = Modifier.padding(end = Dimens.SpacingLg)
+            )
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = colorScheme.surface.copy(alpha = 0.85f),
+            titleContentColor = colorScheme.onSurface,
+            actionIconContentColor = colorScheme.onSurface
+        )
+    )
+}
+
+// ────────────────────────────────────────────────
+// Bottom Navigation Bar
+// ────────────────────────────────────────────────
+@Composable
+private fun SpendTrendBottomBar(
+    currentDestination: androidx.navigation.NavDestination?,
+    onNavigate: (String) -> Unit
+) {
+    NavigationBar(
+        containerColor = colorScheme.surface.copy(alpha = 0.90f),
+        tonalElevation = Dimens.ElevationNone,
+        contentColor = colorScheme.onSurfaceVariant
+    ) {
+        listOf(
+            BottomNavItem.Dashboard,
+            BottomNavItem.Transactions,
+            BottomNavItem.Budgets,
+            BottomNavItem.Forecast,
+            BottomNavItem.Copilot
+        ).forEach { item ->
+            val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = { onNavigate(item.route) },
+                icon = {
+                    Icon(
+                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.contentDescription
+                    )
+                },
+                label = { Text(item.label) },
+                alwaysShowLabel = false,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = colorScheme.onPrimary,
+                    unselectedIconColor = colorScheme.onSurfaceVariant,
+                    selectedTextColor = colorScheme.primary,
+                    indicatorColor = colorScheme.primary
+                )
+            )
+        }
+    }
+}
+
+// ────────────────────────────────────────────────
+// Drawer Content
+// ────────────────────────────────────────────────
+@Composable
+private fun DrawerContent(
+    onNavigate: (String) -> Unit,
+    onLogout: () -> Unit
+) {
+    ModalDrawerSheet(
+        drawerContainerColor = colorScheme.background,
+        drawerContentColor = colorScheme.onSurface
+    ) {
+        DrawerHeader()
+        HorizontalDivider(thickness = 1.dp)
+
+        DrawerItem(Icons.Default.Person, "Profile", "Open profile screen") {
+            onNavigate(Screen.Profile.route)
+        }
+
+        DrawerItem(Icons.Default.Settings, "Settings", "Open settings") {
+            onNavigate(Screen.Settings.route)
+        }
+
+        DrawerItem(Icons.Default.Help, "Help", "Open help and FAQ") {
+            onNavigate(Screen.Help.route)
+        }
+
+        DrawerItem(Icons.Default.Email, "Contact Us", "Open contact form") {
+            onNavigate(Screen.Contact.route)
+        }
+
+        HorizontalDivider(thickness = 1.dp)
+        Spacer(Modifier.height(Dimens.SpacingSm))
+
+        Text(
+            text = "Theme",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 28.dp, vertical = Dimens.SpacingSm)
+        )
+
+        ThemeOption("Light", ThemeMode.LIGHT)
+        ThemeOption("Dark", ThemeMode.DARK)
+        ThemeOption("System", ThemeMode.SYSTEM)
+
+        Spacer(Modifier.weight(1f))
+        DrawerItem(
+            icon = Icons.Default.Logout,
+            label = "Log Out",
+            contentDesc = "Log out of the app",
+            color = colorScheme.error,
+            onClick = onLogout
+        )
+    }
+}
+
+// ────────────────────────────────────────────────
+// Reusable Sub-components
+// ────────────────────────────────────────────────
+
 @Composable
 private fun ProfileAvatar(
     initials: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Box(
         modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
-            .clickable(onClick = onClick)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        shape = CircleShape
+            .background(Brush.linearGradient(listOf(Primary, Secondary)))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = initials.uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
+        Text(
+            text = initials.uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
 
-// Drawer header with larger avatar
 @Composable
 private fun DrawerHeader() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(24.dp),
+            .padding(Dimens.SpacingXxl),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ProfileAvatar(
-            initials = "N",
-            onClick = {},
-            modifier = Modifier.size(80.dp)
-        )
-        Spacer(Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(Brush.linearGradient(listOf(Primary, Secondary))),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "N",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+        Spacer(Modifier.height(Dimens.SpacingLg))
         Text("Nukul", style = MaterialTheme.typography.titleLarge)
         Text(
             "nukul@example.com",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = colorScheme.onSurfaceVariant
         )
     }
 }
 
-// Reusable drawer menu item
 @Composable
 private fun DrawerItem(
     icon: ImageVector,
     label: String,
-    color: Color = MaterialTheme.colorScheme.onSurface,
+    contentDesc: String,
+    color: Color = colorScheme.onSurface,
     onClick: () -> Unit
 ) {
     NavigationDrawerItem(
-        icon = { Icon(icon, contentDescription = label, tint = color) },
+        icon = { Icon(icon, contentDescription = contentDesc, tint = color) },
         label = { Text(label, color = color) },
         selected = false,
         onClick = onClick,
@@ -342,18 +438,12 @@ private fun DrawerItem(
     )
 }
 
-// Theme switcher item
 @Composable
-private fun ThemeOption(
-    label: String,
-    mode: ThemeMode
-) {
+private fun ThemeOption(label: String, mode: ThemeMode) {
     NavigationDrawerItem(
         label = { Text(label) },
         selected = ThemePreferences.themeMode == mode,
-        onClick = {
-            ThemePreferences.themeMode = mode
-        },
+        onClick = { ThemePreferences.updateTheme(mode) },
         icon = {
             Icon(
                 imageVector = when (mode) {
@@ -361,24 +451,45 @@ private fun ThemeOption(
                     ThemeMode.DARK -> Icons.Default.DarkMode
                     ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
                 },
-                contentDescription = null
+                contentDescription = "Switch to $label theme"
             )
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )
 }
 
-// Dynamic screen title
-private fun getScreenTitle(route: String?): String = when (route) {
-    BottomNavItem.Dashboard.route -> "Dashboard"
-    BottomNavItem.Transactions.route -> "Transactions"
-    BottomNavItem.Budgets.route -> "Budgets"
-    BottomNavItem.Forecast.route -> "Forecast"
-    BottomNavItem.Copilot.route -> "Copilot"
-    "add_transaction" -> "Add Transaction"
-    "profile" -> "Profile"
-    "settings" -> "Settings"
-    "help"-> "Help"
-    "contact" -> "Contact Us"
-    else -> "SpendTrend"
+// ────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────
+
+private fun screenTitle(route: String?): String = when (route) {
+    Screen.Dashboard.route      -> "Dashboard"
+    Screen.Transactions.route   -> "Transactions"
+    Screen.Budgets.route        -> "Budgets"
+    Screen.Forecast.route       -> "Forecast"
+    Screen.Copilot.route        -> "Copilot"
+    Screen.AddTransaction.route -> "Add Transaction"
+    Screen.BudgetDetail.route   -> "Budget Detail"
+    Screen.AddBudget.route      -> "Add Budget"
+    Screen.Profile.route        -> "Profile"
+    Screen.Settings.route       -> "Settings"
+    Screen.Help.route           -> "Help"
+    Screen.Contact.route        -> "Contact Us"
+    else                        -> "SpendTrend"
+}
+
+private fun screenIcon(route: String?): ImageVector = when (route) {
+    Screen.Dashboard.route      -> Icons.Default.Dashboard
+    Screen.Transactions.route   -> Icons.Default.ReceiptLong
+    Screen.Budgets.route        -> Icons.Default.Savings
+    Screen.Forecast.route       -> Icons.Default.AutoGraph
+    Screen.Copilot.route        -> Icons.Default.SmartToy
+    Screen.AddTransaction.route -> Icons.Default.Add
+    Screen.BudgetDetail.route   -> Icons.Default.Savings
+    Screen.AddBudget.route      -> Icons.Default.Add
+    Screen.Settings.route       -> Icons.Default.Settings
+    Screen.Profile.route        -> Icons.Default.Person
+    Screen.Help.route           -> Icons.Default.Help
+    Screen.Contact.route        -> Icons.Default.Email
+    else                        -> Icons.Default.Info
 }
