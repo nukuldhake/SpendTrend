@@ -1,46 +1,102 @@
 package com.example.spend_trend.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// ────────────────────────────────────────────────
-// Core Brand Colors (Emerald/Green focused, modern fintech feel)
-// ────────────────────────────────────────────────
-val Primary = Color(0xFF10B981)           // Main action color (emerald green)
-val OnPrimary = Color(0xFFFFFFFF)         // Text/icon on primary buttons
+// ════════════════════════════════════════════════
+//  SpendTrend — Dark-First Premium Palette
+// ════════════════════════════════════════════════
 
-val PrimaryContainer = Color(0xFFD1FAE5)  // Subtle background for primary elements
-val OnPrimaryContainer = Color(0xFF064E3B)
+// ── Primary Accent — Vivid Emerald ──
+val Primary             = Color(0xFF00D09C)
+val OnPrimary           = Color(0xFF00382A)
+val PrimaryContainer    = Color(0xFF004D3B)
+val OnPrimaryContainer  = Color(0xFF7DFBD2)
 
-// ────────────────────────────────────────────────
-// Secondary / Complementary Accent
-// ────────────────────────────────────────────────
-val Secondary = Color(0xFF0EA5E9)         // Soft blue — trust & info
-val OnSecondary = Color(0xFFFFFFFF)
+// ── Secondary — Electric Blue ──
+val Secondary           = Color(0xFF3B82F6)
+val OnSecondary         = Color(0xFFFFFFFF)
+val SecondaryContainer  = Color(0xFF1E3A5F)
+val OnSecondaryContainer = Color(0xFFBFDBFE)
 
-// ────────────────────────────────────────────────
-// Status / Semantic Colors
-// ────────────────────────────────────────────────
-val Success = Color(0xFF34D399)
-val OnSuccess = Color(0xFF064E3B)
+// ── Tertiary — Soft Purple ──
+val Tertiary            = Color(0xFFA78BFA)
+val OnTertiary          = Color(0xFFFFFFFF)
+val TertiaryContainer   = Color(0xFF3B1F7E)
+val OnTertiaryContainer = Color(0xFFDDD6FE)
 
-val Warning = Color(0xFFF59E0B)
-val OnWarning = Color(0xFFFFFFFF)
+// ── Semantic ──
+val Error               = Color(0xFFFF6B6B)
+val OnError             = Color(0xFFFFFFFF)
+val ErrorContainer      = Color(0xFF5C1A1A)
+val OnErrorContainer    = Color(0xFFFCA5A5)
 
-val Error = Color(0xFFEF4444)             // ← this fixes your 'Error' confusion
-val OnError = Color(0xFFFFFFFF)
+val IncomeGreen         = Color(0xFF4ADE80)
+val ExpenseRose         = Color(0xFFFB7185)
+val WarningAmber        = Color(0xFFFBBF24)
 
-// ────────────────────────────────────────────────
-// Neutrals & Surfaces (very important for elevation & readability)
-// ────────────────────────────────────────────────
-val Background = Color(0xFFF8FAFC)        // Very light cool gray-white
+// ════════════════════════════════════════════════
+//  Dark Mode (Hero) — Deep Navy / Charcoal
+// ════════════════════════════════════════════════
+val DarkBackground      = Color(0xFF0A0E1A)
+val DarkSurface         = Color(0xFF111827)
+val DarkSurfaceVariant  = Color(0xFF1F2937)
+val DarkOnSurface       = Color(0xFFF1F5F9)
+val DarkOnSurfaceVariant = Color(0xFF94A3B8)
+val DarkOutline         = Color(0xFF334155)
+val DarkOutlineVariant  = Color(0xFF1E293B)
 
-val Surface = Color(0xFFFAFAFA)           // Cards / main content areas
-val SurfaceVariant = Color(0xFFE2E8F0)    // Slightly different surfaces (e.g. chips)
-val OnSurface = Color(0xFF0F172A)         // Main text color (dark slate)
-val OnSurfaceVariant = Color(0xFF475569)  // Secondary text, icons
+// ════════════════════════════════════════════════
+//  Light Mode — Soft Slate
+// ════════════════════════════════════════════════
+val LightBackground     = Color(0xFFF7FDFB)
+val LightSurface        = Color(0xFFFFFFFF)
+val LightSurfaceVariant = Color(0xFFECFDF5)
+val LightOnSurface      = Color(0xFF0F172A)
+val LightOnSurfaceVariant = Color(0xFF475569)
+val LightOutline        = Color(0xFFCBD5E1)
+val LightOutlineVariant = Color(0xFFE2E8F0)
 
-val Outline = Color(0xFFCBD5E1)           // Borders, dividers
+val InverseSurface      = Color(0xFF1E293B)
+val InverseOnSurface    = Color(0xFFF1F5F9)
+val InversePrimary      = Color(0xFF6EE7B7)
 
-// Optional: Inverse for dark mode overlays, etc.
-val InverseSurface = Color(0xFF0F172A)
-val InverseOnSurface = Color(0xFFF8FAFC)
+// ════════════════════════════════════════════════
+//  Glassmorphism Helpers
+// ════════════════════════════════════════════════
+object GlassColors {
+    // Dark mode glass
+    val DarkGlassSurface   = Color(0xFF1A1F2E).copy(alpha = 0.65f)
+    val DarkGlassBorder    = Color.White.copy(alpha = 0.08f)
+    val DarkGlassHighlight = Color.White.copy(alpha = 0.04f)
+
+    // Light mode glass — fresh crystal white
+    val LightGlassSurface  = Color(0xFFFFFFFF).copy(alpha = 0.92f)
+    val LightGlassBorder   = Color(0xFF00D09C).copy(alpha = 0.15f)
+    val LightGlassHighlight = Color.White.copy(alpha = 0.80f)
+}
+
+// ════════════════════════════════════════════════
+//  Gradient Presets (for hero cards, buttons)
+// ════════════════════════════════════════════════
+object GradientPalette {
+    val EmeraldTeal = Brush.linearGradient(
+        colors = listOf(Color(0xFF00D09C), Color(0xFF0891B2))
+    )
+    val BluePurple = Brush.linearGradient(
+        colors = listOf(Color(0xFF3B82F6), Color(0xFFA78BFA))
+    )
+    val SunsetCoral = Brush.linearGradient(
+        colors = listOf(Color(0xFFF97316), Color(0xFFFB7185))
+    )
+    val DeepOcean = Brush.linearGradient(
+        colors = listOf(Color(0xFF0F766E), Color(0xFF1E40AF))
+    )
+    val Shimmer = Brush.horizontalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.0f),
+            Color.White.copy(alpha = 0.08f),
+            Color.White.copy(alpha = 0.0f)
+        )
+    )
+}
