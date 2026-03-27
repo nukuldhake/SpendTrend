@@ -1,170 +1,106 @@
 package com.example.spend_trend.ui.settings
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.TransactionRepository
+import com.example.spend_trend.ui.transaction.TransactionViewModel
+import com.example.spend_trend.ui.transaction.TransactionViewModelFactory
+import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.GlassTopBar
 import com.example.spend_trend.ui.theme.*
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
-    var autoTrackingEnabled by remember { mutableStateOf(true) } // fake state for now
+fun SettingsScreen(onBack: () -> Unit = {}) {
+    val context = LocalContext.current
+    val viewModel: TransactionViewModel = viewModel(
+        factory = TransactionViewModelFactory(
+            repository = TransactionRepository(AppDatabase.getDatabase(context).transactionDao())
+        )
+    )
+
     var notificationsEnabled by remember { mutableStateOf(true) }
     var selectedCurrency by remember { mutableStateOf("INR") }
 
-    Scaffold(
-
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            item {
-                Text(
-                    text = "Automation",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
-            }
+        GlassTopBar(title = "Settings", onBack = onBack)
 
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text("Auto-track transactions", style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "Read bank SMS & emails to add entries automatically",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = autoTrackingEnabled,
-                                onCheckedChange = { autoTrackingEnabled = it }
-                            )
-                        }
+        Text("Automation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Primary)
 
-                        Spacer(Modifier.height(16.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text("Notifications", style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "Get alerts for budget limits & unusual spending",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = notificationsEnabled,
-                                onCheckedChange = { notificationsEnabled = it }
-                            )
-                        }
-                    }
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Auto-track transactions", style = MaterialTheme.typography.titleMedium)
+                    Text("Read bank SMS & emails", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
-
-            item {
-                Text(
-                    text = "Preferences",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                Switch(
+                    checked = ThemePreferences.autoTrackingEnabled, 
+                    onCheckedChange = { ThemePreferences.updateAutoTracking(it) }, 
+                    colors = SwitchDefaults.colors(checkedTrackColor = Primary)
                 )
             }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Currency", style = MaterialTheme.typography.titleMedium)
-                            var expanded by remember { mutableStateOf(false) }
-                            ExposedDropdownMenuBox(
-                                expanded = expanded,
-                                onExpandedChange = { expanded = !expanded }
-                            ) {
-                                OutlinedTextField(
-                                    value = selectedCurrency,
-                                    onValueChange = { },
-                                    readOnly = true,
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                    modifier = Modifier.menuAnchor().width(120.dp)
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    listOf("INR", "USD", "EUR", "GBP").forEach { currency ->
-                                        DropdownMenuItem(
-                                            text = { Text(currency) },
-                                            onClick = {
-                                                selectedCurrency = currency
-                                                expanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        Button(
-                            onClick = { /* TODO: implement real export */ },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Export Data (CSV)")
-                        }
-                    }
+            Spacer(Modifier.height(Dimens.SpacingLg))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Notifications", style = MaterialTheme.typography.titleMedium)
+                    Text("Budget limits & unusual spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
-
-            item {
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    text = "Your data stays on your device. We never share or upload personal information.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                Spacer(Modifier.height(80.dp))
+                Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it }, colors = SwitchDefaults.colors(checkedTrackColor = Primary))
             }
         }
+
+        Text("Preferences", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Primary)
+
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Currency", style = MaterialTheme.typography.titleMedium)
+                var expanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+                    OutlinedTextField(
+                        value = selectedCurrency, onValueChange = {}, readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().width(120.dp)
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        listOf("INR", "USD", "EUR", "GBP").forEach { currency ->
+                            DropdownMenuItem(text = { Text(currency) }, onClick = { selectedCurrency = currency; expanded = false })
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(Dimens.SpacingLg))
+            Button(
+                onClick = { viewModel.exportToCsv(context) }, 
+                modifier = Modifier.fillMaxWidth(), 
+                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+            ) {
+                Icon(Icons.Default.Download, "Export CSV")
+                Spacer(Modifier.width(Dimens.SpacingSm))
+                Text("Export Data (CSV)")
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+        Text(
+            "Your data stays on your device.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
