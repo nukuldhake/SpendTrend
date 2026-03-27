@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
 
+import com.example.spend_trend.ui.components.GlassTopBar
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -107,6 +108,8 @@ fun AddTransactionScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            GlassTopBar(title = "New Transaction", onBack = onDismiss)
+
             // Income / Expense toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -327,13 +330,4 @@ data class NewTransaction(
     val date: LocalDate
 )
 
-fun categoryIcon(category: String): ImageVector = when (category.lowercase()) {
-    "food" -> Icons.Default.Restaurant
-    "transport" -> Icons.Default.DirectionsCar
-    "shopping" -> Icons.Default.ShoppingBag
-    "salary", "income" -> Icons.Default.AttachMoney
-    "entertainment" -> Icons.Default.Movie
-    "bills" -> Icons.Default.Receipt
-    "health" -> Icons.Default.LocalHospital
-    else -> Icons.Default.Category
-}
+
