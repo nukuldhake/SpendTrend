@@ -1,22 +1,22 @@
 package com.example.spend_trend.ui.forecast
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -24,420 +24,341 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.TransactionRepository
+import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.GradientCard
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ForecastScreen() {
-    // Fake forecast data – later from ML model
-    val forecastData = listOf(8200f, 9100f, 9800f, 10500f, 11200f, 11800f)
+    val db = AppDatabase.getDatabase(LocalContext.current)
+    val viewModel: ForecastViewModel = viewModel(
+        factory = ForecastViewModelFactory(TransactionRepository(db.transactionDao()))
+    )
+
+    val forecastData by viewModel.forecastData.collectAsState()
+    
     val months = (0..5).map {
-        LocalDate.now().plusMonths(it.toLong())
-            .format(DateTimeFormatter.ofPattern("MMM"))
+        LocalDate.now().plusMonths(it.toLong()).format(DateTimeFormatter.ofPattern("MMM"))
     }
     val monthFullNames = (0..5).map {
-        LocalDate.now().plusMonths(it.toLong())
-            .format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+        LocalDate.now().plusMonths(it.toLong()).format(DateTimeFormatter.ofPattern("MMMM yyyy"))
     }
 
-    val avgSpend = forecastData.average().roundToInt()
-    val highest = forecastData.maxOrNull()?.roundToInt() ?: 0
-    val projectedYearEnd = (forecastData.last() * 12).roundToInt()
-    val trendPercentage = ((forecastData.last() - forecastData.first()) / forecastData.first() * 100).roundToInt()
+    val projectedYearEnd = if (forecastData.all { it == 0f }) 0 else (forecastData.last() * 12).roundToInt()
+    val trendPercentage = if (forecastData.first() == 0f) 0 else ((forecastData.last() - forecastData.first()) / forecastData.first() * 100).roundToInt()
 
     var selectedMonthIndex by remember { mutableStateOf(-1) }
     var showAnimation by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(300); showAnimation = true }
 
-    LaunchedEffect(Unit) {
-        delay(300)
-        showAnimation = true
-    }
-
-    Scaffold(
-        containerColor = colorScheme.background,
-        contentColor = colorScheme.onBackground
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = Dimens.SpacingLg)
+            .padding(vertical = Dimens.SpacingLg)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 16.dp)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+        // ── Gradient Hero ──
+        GradientCard(
+            modifier = Modifier.fillMaxWidth(),
+            brush = GradientPalette.DeepOcean
         ) {
-            // ────────────────────────────────────────────────
-            // Hero / Title Card – replaces plain text header
-            // Looks premium, no floating text, strong visual entry
-            // ────────────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                colorScheme.primary.copy(alpha = 0.08f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .padding(20.dp)
-            ) {
+            Text(
+                "Projected Year-End",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+            Spacer(Modifier.height(Dimens.SpacingXs))
+            Text(
+                "₹${projectedYearEnd.formatWithComma()}",
+                style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Spacer(Modifier.height(Dimens.SpacingSm))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    if (trendPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                    contentDescription = "Trend direction",
+                    tint = if (trendPercentage > 0) ExpenseRose else IncomeGreen,
+                    modifier = Modifier.size(Dimens.IconSm)
+                )
+                Spacer(Modifier.width(Dimens.SpacingXs))
                 Text(
-                    text = "Spending Forecast",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorScheme.primary
+                    if (trendPercentage > 0) "+$trendPercentage% vs last year" else "$trendPercentage%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f)
                 )
             }
+        }
 
-            // Big projected total card
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(6.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Projected Year-End Spending",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = "₹${projectedYearEnd.formatWithComma()}",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colorScheme.primary
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            imageVector = if (trendPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                            contentDescription = null,
-                            tint = if (trendPercentage > 0) colorScheme.error else colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                    Text(
-                        text = if (trendPercentage > 0) "+$trendPercentage% vs last year" else "$trendPercentage% vs last year",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (trendPercentage > 0) colorScheme.error else colorScheme.primary
-                    )
-                }
-            }
-
-            // Main Chart with tooltip
+        // ── Glass Chart ──
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "Spending Forecast",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(Dimens.SpacingLg))
             ForecastChart(
                 data = forecastData,
                 labels = months,
-                fullLabels = monthFullNames,
                 animated = showAnimation,
-                onPointSelected = { index -> selectedMonthIndex = index }
+                onPointSelected = { selectedMonthIndex = it }
             )
+        }
 
-            // Selected month info (tooltip-like)
-            if (selectedMonthIndex >= 0) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = colorScheme.primaryContainer)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "${monthFullNames[selectedMonthIndex]} Projection",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "₹${forecastData[selectedMonthIndex].roundToInt().formatWithComma()}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = colorScheme.primary
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-            }
-
-
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                colorScheme.primary.copy(alpha = 0.08f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .padding(20.dp)
-            ) {
+        // ── Tooltip ──
+        if (selectedMonthIndex >= 0) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Monthly Breakdown",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorScheme.primary
+                    "${monthFullNames[selectedMonthIndex]} Projection",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "₹${forecastData[selectedMonthIndex].roundToInt().formatWithComma()}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Primary
                 )
             }
+        }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                months.forEachIndexed { index, month ->
-                    val amount = forecastData[index].roundToInt()
-                    val change = if (index > 0) {
-                        ((amount - forecastData[index - 1]) / forecastData[index - 1] * 100).roundToInt()
-                    } else 0
+        // ── Monthly Breakdown ──
+        Text(
+            "Monthly Breakdown",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
-                    ElevatedCard(
-                        modifier = Modifier
-                            .width(140.dp)
-                            .height(160.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = month,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center
-                            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+        ) {
+            months.forEachIndexed { index, month ->
+                val amount = forecastData[index].roundToInt()
+                val prevAmount = if (index > 0) forecastData[index - 1] else 0f
+                val change = if (index > 0 && prevAmount != 0f) {
+                    ((amount - prevAmount) / prevAmount * 100).roundToInt()
+                } else 0
 
-                            Spacer(Modifier.height(12.dp))
-
-                            Text(
-                                text = "₹${amount.formatWithComma()}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = colorScheme.primary,
-                                textAlign = TextAlign.Center
-                            )
-
-                            Spacer(Modifier.height(8.dp))
-
-                            if (index > 0) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = if (change >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                                        contentDescription = null,
-                                        tint = if (change >= 0) colorScheme.error else colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(
-                                        text = if (change >= 0) "+${change}%" else "$change%",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (change >= 0) colorScheme.error else colorScheme.primary
-                                    )
-                                }
-                            } else {
-                                Spacer(Modifier.height(24.dp))
+                GlassCard(modifier = Modifier.width(130.dp)) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            month,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(Dimens.SpacingSm))
+                        Text(
+                            "₹${amount.formatWithComma()}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Primary
+                        )
+                        if (index > 0) {
+                            Spacer(Modifier.height(Dimens.SpacingXs))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val indicatorColor = if (change > 0) ExpenseRose else if (change < 0) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                val indicatorIcon = if (change > 0) Icons.Default.ArrowUpward else if (change < 0) Icons.Default.ArrowDownward else Icons.Default.Remove
+                                
+                                Icon(
+                                    indicatorIcon,
+                                    contentDescription = "Change indicator",
+                                    tint = indicatorColor,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    "${if (change > 0) "+" else ""}$change%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = indicatorColor
+                                )
                             }
                         }
                     }
                 }
             }
+        }
 
-            // Risk / Insight banner
-            val riskLevel = when {
-                trendPercentage > 20 -> "High risk of overspending"
-                trendPercentage > 5 -> "Moderate increase expected"
-                else -> "Stable spending trend"
-            }
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = when {
-                        trendPercentage > 20 -> colorScheme.errorContainer
-                        trendPercentage > 5 -> colorScheme.tertiaryContainer
-                        else -> colorScheme.primaryContainer
-                    }
-                ),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        // ── Risk Banner ──
+        val riskLevel = when {
+            trendPercentage > 20 -> "High risk of overspending"
+            trendPercentage > 5 -> "Moderate increase expected"
+            else -> "Stable spending trend"
+        }
+        val riskColor = when {
+            trendPercentage > 20 -> ExpenseRose
+            trendPercentage > 5 -> WarningAmber
+            else -> IncomeGreen
+        }
+
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(riskColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         if (trendPercentage > 5) Icons.Default.WarningAmber else Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = colorScheme.onErrorContainer,
-                        modifier = Modifier.size(32.dp)
+                        contentDescription = "Risk indicator",
+                        tint = riskColor,
+                        modifier = Modifier.size(Dimens.IconMd)
                     )
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(riskLevel, style = MaterialTheme.typography.titleMedium)
-                        Text("Consider reviewing subscriptions and discretionary spending", style = MaterialTheme.typography.bodyMedium)
-                    }
+                }
+                Spacer(Modifier.width(Dimens.SpacingMd))
+                Column {
+                    Text(
+                        riskLevel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = riskColor
+                    )
+                    Text(
+                        "Review subscriptions and discretionary spending",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-
-            Spacer(Modifier.height(80.dp))
         }
+
+        Spacer(Modifier.height(Dimens.BottomNavClearance))
     }
 }
-
-// Your existing ForecastChart function remains unchanged (it's already very good)
 
 @Composable
 fun ForecastChart(
     data: List<Float>,
     labels: List<String>,
-    fullLabels: List<String>,
     animated: Boolean = true,
     onPointSelected: (Int) -> Unit = {}
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = if (animated) 1f else 0f,
-        label = "chart animation"
+        label = "chart_anim"
     )
-
     var selectedIndex by remember { mutableStateOf(-1) }
 
-    val primary = MaterialTheme.colorScheme.primary
+    val lineColor = Secondary
+    val glowColor = Secondary.copy(alpha = 0.3f)
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
 
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(360.dp),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(6.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(1f)) {
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures { offset ->
-                                val xStep = size.width / (data.size - 1)
-                                val tappedIndex = (offset.x / xStep).roundToInt().coerceIn(0, data.size - 1)
-                                selectedIndex = tappedIndex
-                                onPointSelected(tappedIndex)
-                            }
-                        }
-                ) {
-                    val maxValue = (data.maxOrNull() ?: 1f) * 1.15f
-                    val minValue = (data.minOrNull() ?: 0f) * 0.85f
-                    val xStep = size.width / (data.size - 1).coerceAtLeast(1)
-                    val yRange = maxValue - minValue
-                    val yScale = size.height / yRange
-
-                    // Grid lines
-                    val gridCount = 5
-                    for (i in 0..gridCount) {
-                        val y = size.height * (i.toFloat() / gridCount)
-                        drawLine(
-                            color = outlineVariant.copy(alpha = 0.2f),
-                            start = Offset(0f, y),
-                            end = Offset(size.width, y),
-                            strokeWidth = 1.dp.toPx()
-                        )
-                    }
-
-                    // Gradient fill
-                    val areaPath = Path().apply {
-                        moveTo(0f, size.height)
-                        data.forEachIndexed { index, value ->
-                            val x = xStep * index
-                            val y = size.height - ((value - minValue) * yScale * animatedProgress)
-                            lineTo(x, y)
-                        }
-                        lineTo(size.width, size.height)
-                        close()
-                    }
-                    drawPath(
-                        path = areaPath,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                primary.copy(alpha = 0.3f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-
-                    // Line
-                    val linePath = Path().apply {
-                        data.forEachIndexed { index, value ->
-                            val x = xStep * index
-                            val y = size.height - ((value - minValue) * yScale * animatedProgress)
-                            if (index == 0) moveTo(x, y) else lineTo(x, y)
-                        }
-                    }
-                    drawPath(
-                        path = linePath,
-                        color = primary,
-                        style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
-                    )
-
-                    // Points
-                    data.forEachIndexed { index, value ->
-                        val x = xStep * index
-                        val y = size.height - ((value - minValue) * yScale * animatedProgress)
-                        drawCircle(
-                            color = if (index == selectedIndex) Color.White else primary,
-                            radius = if (index == selectedIndex) 10.dp.toPx() else 6.dp.toPx(),
-                            center = Offset(x, y)
-                        )
-                        drawCircle(
-                            color = primary,
-                            radius = 6.dp.toPx(),
-                            center = Offset(x, y)
-                        )
+    Column {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Dimens.ChartHeight)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val xStep = size.width / (data.size - 1)
+                        val tappedIndex = (offset.x / xStep)
+                            .roundToInt()
+                            .coerceIn(0, data.size - 1)
+                        selectedIndex = tappedIndex
+                        onPointSelected(tappedIndex)
                     }
                 }
+        ) {
+            val maxValue = (data.maxOrNull() ?: 1f) * 1.15f
+            val minValue = (data.minOrNull() ?: 0f) * 0.85f
+            val xStep = size.width / (data.size - 1).coerceAtLeast(1)
+            val yRange = (maxValue - minValue).coerceAtLeast(1f)
+            val yScale = size.height / yRange
 
-                // X-axis labels
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(top = 8.dp, bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    labels.forEach { label ->
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+            // Grid lines
+            for (i in 0..4) {
+                val y = size.height * (i.toFloat() / 4)
+                drawLine(
+                    color = outlineVariant.copy(alpha = 0.15f),
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+
+            // Gradient fill
+            val areaPath = Path().apply {
+                moveTo(0f, size.height)
+                data.forEachIndexed { index, value ->
+                    val x = xStep * index
+                    val y = size.height - ((value - minValue) * yScale * animatedProgress)
+                    lineTo(x, y)
                 }
+                lineTo(size.width, size.height)
+                close()
+            }
+            drawPath(
+                path = areaPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(lineColor.copy(alpha = 0.25f), Color.Transparent)
+                )
+            )
+
+            // Glow line
+            val linePath = Path().apply {
+                data.forEachIndexed { index, value ->
+                    val x = xStep * index
+                    val y = size.height - ((value - minValue) * yScale * animatedProgress)
+                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+                }
+            }
+            drawPath(path = linePath, color = glowColor, style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round))
+            drawPath(path = linePath, color = lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+
+            // Points
+            data.forEachIndexed { index, value ->
+                val x = xStep * index
+                val y = size.height - ((value - minValue) * yScale * animatedProgress)
+                val isSelected = index == selectedIndex
+                drawCircle(
+                    color = glowColor,
+                    radius = if (isSelected) 12.dp.toPx() else 8.dp.toPx(),
+                    center = Offset(x, y)
+                )
+                drawCircle(color = lineColor, radius = 5.dp.toPx(), center = Offset(x, y))
+                drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(x, y))
+            }
+        }
+
+        // X labels
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Dimens.SpacingSm),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            labels.forEach { label ->
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
-
-// Keep your existing formatWithComma, etc.
-fun Int.formatWithComma(): String = toString().reversed().chunked(3).joinToString(",").reversed()
