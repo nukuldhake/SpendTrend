@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.format.DateTimeFormatter
+import java.io.File
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import java.time.LocalDate
 
 class TransactionViewModel(
@@ -59,6 +64,37 @@ class TransactionViewModel(
         viewModelScope.launch {
             val entity = ui.toEntity()
             repository.delete(entity)
+        }
+    }
+
+    // Export to CSV
+    fun exportToCsv(context: Context) {
+        viewModelScope.launch {
+            val transactions = repository.allTransactions.map { it.reversed() }.stateIn(viewModelScope).value
+            if (transactions.isEmpty()) return@launch
+
+            val header = "Date,Title,Category,Amount\n"
+            val rows = transactions.joinToString("\n") { tx ->
+                val date = LocalDate.ofEpochDay(tx.dateMillis / 86400000L).format(DateTimeFormatter.ISO_DATE)
+                "\"$date\",\"${tx.title}\",\"${tx.category}\",${tx.amount}"
+            }
+            val csvData = header + rows
+
+            try {
+                val file = File(context.cacheDir, "spendtrend_export.csv")
+                file.writeText(csvData)
+                
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(Intent.EXTRA_SUBJECT, "SpendTrend Export")
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Export CSV"))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
