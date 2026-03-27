@@ -13,7 +13,7 @@ sealed class BottomNavItem(
     val contentDescription: String
 ) {
     object Dashboard : BottomNavItem(
-        route = "dashboard",
+        route = Screen.Dashboard.route,
         label = "Home",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home,
@@ -21,7 +21,7 @@ sealed class BottomNavItem(
     )
 
     object Transactions : BottomNavItem(
-        route = "transactions",
+        route = Screen.Transactions.route,
         label = "Transactions",
         selectedIcon = Icons.Filled.ReceiptLong,
         unselectedIcon = Icons.Outlined.ReceiptLong,
@@ -29,7 +29,7 @@ sealed class BottomNavItem(
     )
 
     object Budgets : BottomNavItem(
-        route = "budgets",
+        route = Screen.Budgets.route,
         label = "Budgets",
         selectedIcon = Icons.Filled.AccountBalanceWallet,
         unselectedIcon = Icons.Outlined.AccountBalanceWallet,
@@ -37,7 +37,7 @@ sealed class BottomNavItem(
     )
 
     object Forecast : BottomNavItem(
-        route = "forecast",
+        route = Screen.Forecast.route,
         label = "Forecast",
         selectedIcon = Icons.Filled.TrendingUp,
         unselectedIcon = Icons.Outlined.TrendingUp,
@@ -45,7 +45,7 @@ sealed class BottomNavItem(
     )
 
     object Copilot : BottomNavItem(
-        route = "copilot",
+        route = Screen.Copilot.route,
         label = "Copilot",
         selectedIcon = Icons.Filled.SmartToy,
         unselectedIcon = Icons.Outlined.SmartToy,
