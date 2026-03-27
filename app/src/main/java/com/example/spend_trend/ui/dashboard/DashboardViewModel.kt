@@ -3,20 +3,23 @@ package com.example.spend_trend.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spend_trend.data.TransactionEntity
+import com.example.spend_trend.data.repository.BudgetRepository
 import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.transaction.TransactionUi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.ZoneOffset
 
 class DashboardViewModel(
-    private val repository: TransactionRepository
+    private val txRepository: TransactionRepository,
+    private val budgetRepository: BudgetRepository
 ) : ViewModel() {
 
-    val recentTransactions: StateFlow<List<DashboardTx>> = repository.recentTransactions
+    val recentTransactions: StateFlow<List<DashboardTx>> = txRepository.recentTransactions
         .map { entities ->
             entities.map { entity ->
                 DashboardTx(
@@ -32,7 +35,7 @@ class DashboardViewModel(
             initialValue = emptyList()
         )
 
-    val todayTransactions: StateFlow<Int> = repository.allTransactions
+    val todayTransactions: StateFlow<Int> = txRepository.allTransactions
         .map { entities ->
             val todayStart = LocalDate.now().atStartOfDay()
                 .toInstant(java.time.ZoneOffset.UTC)
@@ -52,7 +55,7 @@ class DashboardViewModel(
         )
 
     // Monthly trend (last 6 months total spend, oldest → newest)
-    val monthlyTrend: StateFlow<List<Int>> = repository.allTransactions
+    val monthlyTrend: StateFlow<List<Int>> = txRepository.allTransactions
         .map { entities ->
             val now = LocalDate.now()
             (0..5).map { monthsBack ->
@@ -74,7 +77,8 @@ class DashboardViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    val currentMonthSummary: StateFlow<MonthSummary> = repository.allTransactions
+
+    val currentMonthSummary: StateFlow<MonthSummary> = txRepository.allTransactions
         .map { entities ->
             val now = LocalDate.now()
             val monthStart = now.withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
@@ -93,11 +97,23 @@ class DashboardViewModel(
             started = SharingStarted.WhileSubscribed(5000L),
             initialValue = MonthSummary(0, 0, 0)
         )
+
+    // Combined Budget usage percentage
+    val budgetProgress: StateFlow<Float> = combine(txRepository.allTransactions, budgetRepository.getAllActive()) { txs, budgets ->
+        val now = LocalDate.now()
+        val monthStart = now.withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        val monthEnd = now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+
+        val totalBudget = budgets.sumOf { it.monthlyLimit.toDouble() }.toFloat()
+        val totalSpent = txs.filter { it.dateMillis in monthStart..monthEnd && it.amount < 0 }
+            .sumOf { -it.amount.toDouble() }.toFloat()
+
+        if (totalBudget > 0) (totalSpent / totalBudget).coerceIn(0f, 1f) else 0f
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 }
 
 data class MonthSummary(val income: Int, val expense: Int, val net: Int)
 
-// Extension function – add this at the bottom
 fun TransactionEntity.toUi(): TransactionUi {
     return TransactionUi(
         title = title,
@@ -105,4 +121,17 @@ fun TransactionEntity.toUi(): TransactionUi {
         amount = amount,
         date = LocalDate.ofEpochDay(dateMillis / 86400000L)
     )
+}
+
+class DashboardViewModelFactory(
+    private val txRepository: TransactionRepository,
+    private val budgetRepository: BudgetRepository
+) : androidx.lifecycle.ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return DashboardViewModel(txRepository, budgetRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
 }
