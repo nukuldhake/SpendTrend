@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -44,6 +45,8 @@ import com.example.spend_trend.ui.settings.SettingsScreen
 import com.example.spend_trend.ui.transaction.AddTransactionScreen
 import com.example.spend_trend.ui.transaction.TransactionHistoryScreen
 import com.example.spend_trend.ui.theme.*
+import com.example.spend_trend.ui.auth.*
+import com.example.spend_trend.data.UserPreferences
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +60,20 @@ fun AppScaffold() {
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    
+    // Auth State
+    var isLoggedIn by remember { mutableStateOf(UserPreferences.isLoggedIn()) }
+    var isRegistered by remember { mutableStateOf(UserPreferences.isRegistered()) }
+    var hasPin by remember { mutableStateOf(UserPreferences.hasPin()) }
+    
+    val isAuthScreen = currentDestination?.route in listOf(Screen.Register.route, Screen.Login.route, Screen.PinSetup.route)
+    
+    val startDestination = when {
+        !isRegistered -> Screen.Register.route
+        !hasPin -> Screen.PinSetup.route
+        !isLoggedIn -> Screen.Login.route
+        else -> Screen.Dashboard.route
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -68,31 +85,42 @@ fun AppScaffold() {
                         launchSingleTop = true
                     }
                 },
-                onLogout = { scope.launch { drawerState.close() } }
+                onLogout = { 
+                    scope.launch { drawerState.close() }
+                    UserPreferences.setLoggedIn(false)
+                    isLoggedIn = false
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
     ) {
         Scaffold(
             topBar = {
-                SpendTrendTopBar(
-                    currentRoute = currentDestination?.route,
-                    onDrawerOpen = { scope.launch { drawerState.open() } }
-                )
+                if (!isAuthScreen) {
+                    SpendTrendTopBar(
+                        currentRoute = currentDestination?.route,
+                        onDrawerOpen = { scope.launch { drawerState.open() } }
+                    )
+                }
             },
             bottomBar = {
-                SpendTrendBottomBar(
-                    currentDestination = currentDestination,
-                    onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo(Screen.Dashboard.route) {
-                                saveState = true
-                                inclusive = false
+                if (!isAuthScreen) {
+                    SpendTrendBottomBar(
+                        currentDestination = currentDestination,
+                        onNavigate = { route ->
+                            navController.navigate(route) {
+                                popUpTo(Screen.Dashboard.route) {
+                                    saveState = true
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
                         }
-                    }
-                )
+                    )
+                }
             },
             floatingActionButton = {
                 val route = currentDestination?.route
@@ -121,11 +149,55 @@ fun AppScaffold() {
 
             NavHost(
                 navController = navController,
-                startDestination = Screen.Dashboard.route,
-                modifier = Modifier.padding(innerPadding),
+                startDestination = startDestination,
+                modifier = Modifier.padding(if (isAuthScreen) PaddingValues(0.dp) else innerPadding),
                 enterTransition = { fadeIn(animationSpec = tween(300)) },
                 exitTransition = { fadeOut(animationSpec = tween(200)) }
             ) {
+                // ── Auth Flow ──
+                composable(Screen.Register.route) {
+                    RegisterScreen(
+                        onRegisterSuccess = { 
+                            isRegistered = true
+                            navController.navigate(Screen.PinSetup.route) {
+                                popUpTo(Screen.Register.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToLogin = {
+                            navController.navigate(Screen.Login.route)
+                        }
+                    )
+                }
+
+                composable(Screen.PinSetup.route) {
+                    PinSetupScreen(
+                        onSetupComplete = {
+                            hasPin = true
+                            UserPreferences.setLoggedIn(true)
+                            isLoggedIn = true
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(Screen.PinSetup.route) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
+                composable(Screen.Login.route) {
+                    LoginScreen(
+                        onLoginSuccess = {
+                            UserPreferences.setLoggedIn(true)
+                            isLoggedIn = true
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToRegister = {
+                            navController.navigate(Screen.Register.route)
+                        }
+                    )
+                }
+
+                // ── Main Content ──
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         onViewAllTransactions = {
@@ -171,7 +243,7 @@ fun AppScaffold() {
 
                 composable(Screen.AddTransaction.route) {
                     AddTransactionScreen(
-                        onSave = { newTx ->
+                        onSave = { _ ->
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("Transaction added!", "View")
                             }
@@ -412,9 +484,9 @@ private fun DrawerHeader() {
             )
         }
         Spacer(Modifier.height(Dimens.SpacingLg))
-        Text("Nukul", style = MaterialTheme.typography.titleLarge)
+        Text(ThemePreferences.userName, style = MaterialTheme.typography.titleLarge)
         Text(
-            "nukul@example.com",
+            UserPreferences.getEmail() ?: "Welcome to SpendTrend",
             style = MaterialTheme.typography.bodyMedium,
             color = colorScheme.onSurfaceVariant
         )
