@@ -1,5 +1,7 @@
 package com.example.spend_trend.ui.copilot
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,197 +15,195 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.BudgetRepository
+import com.example.spend_trend.data.repository.TransactionRepository
+import com.example.spend_trend.ui.components.GlassCard
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.delay
 
 @Composable
 fun CopilotScreen() {
-
-    // Fake conversation – later replace with ViewModel + real LLM
-    val messages = remember {
-        mutableStateListOf(
-            ChatMessage(
-                text = "Hi! I’m your SpendTrend Copilot. How can I help you today?",
-                isUser = false,
-                time = "10:01"
-            ),
-            ChatMessage(
-                text = "Why am I over budget on food?",
-                isUser = true,
-                time = "10:02"
-            ),
-            ChatMessage(
-                text = "You’ve spent 18% more on dining this month mainly because of frequent restaurant visits. Cutting back twice a week could save you around ₹1,200.",
-                isUser = false,
-                time = "10:02"
-            )
+    val db = AppDatabase.getDatabase(LocalContext.current)
+    val viewModel: CopilotViewModel = viewModel(
+        factory = CopilotViewModelFactory(
+            txRepository = TransactionRepository(db.transactionDao()),
+            budgetRepository = BudgetRepository(db.budgetDao())
         )
-    }
+    )
 
     var inputText by remember { mutableStateOf("") }
-    var isTyping by remember { mutableStateOf(false) }
-    var pendingBotReply by remember { mutableStateOf(false) }
+    val messages = viewModel.messages
+    val isTyping = viewModel.isTyping
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            ChatInputBar(
-                text = inputText,
-                onTextChange = { inputText = it },
-                onSend = {
-                    if (inputText.isNotBlank()) {
-                        messages.add(
-                            ChatMessage(
-                                text = inputText.trim(),
-                                isUser = true,
-                                time = "now" // you can use real time later
+    Column(modifier = Modifier.fillMaxSize()) {
+        // ── Glass Header ──
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = Dimens.RadiusSm
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Primary, Secondary)
                             )
-                        )
-                        val currentInput = inputText
-                        inputText = ""
-
-                        // simulate thinking
-                        isTyping = true
-                        pendingBotReply = true
-                    }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "AI",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-            )
-        }
-    ) { padding ->
-
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            CopilotHeader()
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                reverseLayout = false
-            ) {
-                items(messages) { msg ->
-                    ChatBubble(msg)
+                Spacer(Modifier.width(Dimens.SpacingMd))
+                Column {
+                    Text(
+                        "SpendTrend Copilot",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "AI financial assistant",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-
-                if (isTyping) {
-                    item {
-                        TypingIndicator()
-                    }
-                }
-
-                item { Spacer(Modifier.height(8.dp)) }
             }
         }
-    }
 
-    // Fake bot reply simulation
-    LaunchedEffect(pendingBotReply) {
-        if (pendingBotReply) {
-            delay(1400)
-            messages.add(
-                ChatMessage(
-                    text = "Would you like me to show you a category-wise breakdown or suggest some quick ways to save on food this month?",
-                    isUser = false,
-                    time = "now"
-                )
-            )
-            isTyping = false
-            pendingBotReply = false
-        }
-    }
-}
-
-@Composable
-fun CopilotHeader() {
-    Surface(
-        tonalElevation = 2.dp,
-        shadowElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
+        // ── Messages ──
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f),
+            contentPadding = PaddingValues(Dimens.SpacingLg, Dimens.SpacingMd, Dimens.SpacingLg, Dimens.SpacingMd),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+            reverseLayout = false
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "AI",
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            items(messages) { msg ->
+                GlassChatBubble(msg)
             }
 
-            Spacer(Modifier.width(16.dp))
+            if (isTyping) {
+                item { PulsingTypingIndicator() }
+            }
+        }
 
-            Column {
-                Text(
-                    "SpendTrend Copilot",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+        // ── Glass Input Bar ──
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = Dimens.RadiusSm
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    placeholder = {
+                        Text(
+                            "Ask anything about your money...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = Dimens.SpacingSm),
+                    shape = RoundedCornerShape(Dimens.RadiusLg),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        focusedBorderColor = Primary.copy(alpha = 0.5f),
+                        unfocusedBorderColor = Color.Transparent
+                    )
                 )
-                Text(
-                    "AI financial assistant",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                IconButton(
+                    onClick = {
+                        if (inputText.isNotBlank()) {
+                            viewModel.sendMessage(inputText.trim())
+                            inputText = ""
+                        }
+                    },
+                    enabled = inputText.isNotBlank()
+                ) {
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = "Send message",
+                        tint = if (inputText.isNotBlank()) Primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                }
             }
         }
     }
+
+    // Bot reply logic is moved to CopilotViewModel
 }
 
 @Composable
-fun ChatBubble(message: ChatMessage) {
+private fun GlassChatBubble(message: ChatMessage) {
     val isUser = message.isUser
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
+        val bgModifier = if (isUser) {
+            Modifier
+                .clip(
+                    RoundedCornerShape(
+                        topStart = Dimens.RadiusMd,
+                        topEnd = Dimens.RadiusMd,
+                        bottomEnd = Dimens.SpacingXs,
+                        bottomStart = Dimens.RadiusMd
+                    )
+                )
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Primary.copy(alpha = 0.8f), Secondary.copy(alpha = 0.6f))
+                    )
+                )
+        } else {
+            Modifier
+                .clip(
+                    RoundedCornerShape(
+                        topStart = Dimens.RadiusMd,
+                        topEnd = Dimens.RadiusMd,
+                        bottomEnd = Dimens.RadiusMd,
+                        bottomStart = Dimens.SpacingXs
+                    )
+                )
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        }
+
         Column(
             modifier = Modifier
                 .widthIn(max = 300.dp)
-                .background(
-                    color = if (isUser)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp,
-                        bottomEnd = if (isUser) 20.dp else 4.dp,
-                        bottomStart = if (isUser) 4.dp else 20.dp
-                    )
-                )
+                .then(bgModifier)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Text(
-                text = message.text,
+                message.text,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isUser)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface
             )
-
-            Spacer(Modifier.height(4.dp))
-
+            Spacer(Modifier.height(Dimens.SpacingXs))
             Text(
-                text = message.time,
+                message.time,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = if (isUser) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.align(Alignment.End)
             )
         }
@@ -211,66 +211,35 @@ fun ChatBubble(message: ChatMessage) {
 }
 
 @Composable
-fun ChatInputBar(
-    text: String,
-    onTextChange: (String) -> Unit,
-    onSend: () -> Unit
-) {
-    Surface(
-        tonalElevation = 3.dp,
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                placeholder = { Text("Ask anything about your money...") },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                shape = RoundedCornerShape(28.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            )
+private fun PulsingTypingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing")
 
-            IconButton(
-                onClick = onSend,
-                enabled = text.isNotBlank(),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(Icons.Default.Send, contentDescription = "Send")
-            }
-        }
-    }
-}
-
-@Composable
-fun TypingIndicator() {
     Row(
-        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.padding(start = Dimens.SpacingLg, top = Dimens.SpacingSm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingXs)
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(18.dp),
-            strokeWidth = 2.5.dp,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(Modifier.width(12.dp))
-
+        repeat(3) { index ->
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, delayMillis = index * 200),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "dot_$index"
+            )
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = alpha))
+            )
+        }
+        Spacer(Modifier.width(Dimens.SpacingSm))
         Text(
-            "Copilot is thinking...",
-            style = MaterialTheme.typography.bodyMedium,
+            "Copilot is thinking…",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
