@@ -22,6 +22,10 @@ class TransactionRepository(private val dao: TransactionDao) {
         dao.delete(entity)
     }
 
+    suspend fun deleteById(id: Int) {
+        dao.deleteById(id)
+    }
+
     // Optional helpers for Dashboard
     suspend fun getNetForPeriod(startMillis: Long, endMillis: Long): Int? {
         return dao.getNetForPeriod(startMillis, endMillis)

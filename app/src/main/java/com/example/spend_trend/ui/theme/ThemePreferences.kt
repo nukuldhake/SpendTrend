@@ -23,14 +23,14 @@ object ThemePreferences {
     var userName by mutableStateOf("Nukul")
         private set
 
-    var autoTrackingEnabled by mutableStateOf(true)
+    var autoTrackingEnabled by mutableStateOf(false)
         private set
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         themeMode = ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name)
         userName = prefs.getString(KEY_USER_NAME, "Nukul") ?: "Nukul"
-        autoTrackingEnabled = prefs.getBoolean(KEY_AUTO_TRACKING, true)
+        autoTrackingEnabled = prefs.getBoolean(KEY_AUTO_TRACKING, false)
     }
 
     fun updateTheme(newMode: ThemeMode) {

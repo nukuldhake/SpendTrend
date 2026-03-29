@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,7 +29,6 @@ import com.example.spend_trend.ui.components.GlassCard
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +42,7 @@ fun TransactionHistoryScreen(
         )
     )
 
-    val allTx by viewModel.allTransactions.collectAsState(initial = emptyList())
+    val allTx by viewModel.allTransactions.collectAsState()
 
     var selectedFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     var selectedRange by remember { mutableStateOf(DateRangeFilter.ALL_TIME) }
@@ -52,15 +51,14 @@ fun TransactionHistoryScreen(
 
     val today = LocalDate.now()
 
-    val filtered = allTx
-        .filter {
+    val filtered = remember(allTx, selectedFilter, selectedRange) {
+        allTx.filter {
             when (selectedFilter) {
                 TransactionFilter.ALL -> true
                 TransactionFilter.INCOME -> it.amount > 0
                 TransactionFilter.EXPENSE -> it.amount < 0
             }
-        }
-        .filter {
+        }.filter {
             when (selectedRange) {
                 DateRangeFilter.LAST_7_DAYS -> it.date.isAfter(today.minusDays(7))
                 DateRangeFilter.LAST_30_DAYS -> it.date.isAfter(today.minusDays(30))
@@ -70,6 +68,7 @@ fun TransactionHistoryScreen(
                 DateRangeFilter.ALL_TIME -> true
             }
         }
+    }
 
     val coroutineScope = rememberCoroutineScope()
     val income = filtered.filter { it.amount > 0 }.sumOf { it.amount }
@@ -82,7 +81,7 @@ fun TransactionHistoryScreen(
             .padding(horizontal = Dimens.SpacingLg)
             .padding(vertical = Dimens.SpacingLg)
     ) {
-        // ── Glass Summary Row ──
+        // ── Summary Row ──
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)
@@ -129,22 +128,35 @@ fun TransactionHistoryScreen(
         if (filtered.isEmpty()) {
             GlassEmptyState()
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)) {
-                filtered.groupBy { it.dateLabel() }.forEach { (group, txList) ->
-                    stickyHeader {
-                        Text(
-                            text = group,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
-                                .padding(vertical = Dimens.SpacingSm)
-                        )
+            val groupedTransactions = remember(filtered) {
+                filtered.groupBy { it.dateLabel() }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                groupedTransactions.forEach { (group, txList) ->
+                    stickyHeader(key = group) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            Text(
+                                text = group,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = Dimens.SpacingSm)
+                            )
+                        }
                     }
 
-                    items(txList, key = { it.hashCode() }) { tx ->
+                    items(
+                        items = txList,
+                        key = { it.id }
+                    ) { tx ->
                         SwipeableTransactionRow(
                             transaction = tx,
                             onDelete = {
@@ -170,16 +182,19 @@ fun TransactionHistoryScreen(
 
     if (showRangePicker) {
         ModalBottomSheet(onDismissRequest = { showRangePicker = false }) {
-            Column(Modifier.padding(Dimens.SpacingLg)) {
+            Column(Modifier.padding(Dimens.SpacingLg).padding(bottom = 32.dp)) {
                 Text("Select time range", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(Dimens.SpacingLg))
                 DateRangeFilter.values().forEach { range ->
                     ListItem(
                         headlineContent = { Text(range.label) },
                         leadingContent = {
-                            Icon(Icons.Default.CalendarMonth, contentDescription = "Select ${range.label}", tint = Primary)
+                            Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Primary)
                         },
-                        modifier = Modifier.clickable { selectedRange = range; showRangePicker = false }
+                        modifier = Modifier.clickable { 
+                            selectedRange = range
+                            showRangePicker = false 
+                        }
                     )
                 }
             }
@@ -189,7 +204,14 @@ fun TransactionHistoryScreen(
     if (selectedEditTx != null) {
         EditTransactionBottomSheet(
             transaction = selectedEditTx!!,
-            onUpdate = { updated -> viewModel.updateTransaction(updated); selectedEditTx = null },
+            onUpdate = { updated -> 
+                viewModel.updateTransaction(updated)
+                selectedEditTx = null 
+            },
+            onDelete = { toDelete -> 
+                viewModel.deleteTransaction(toDelete)
+                selectedEditTx = null 
+            },
             onDismiss = { selectedEditTx = null }
         )
     }
@@ -198,13 +220,18 @@ fun TransactionHistoryScreen(
 @Composable
 fun GlassSummaryChip(label: String, amount: Int, color: Color, modifier: Modifier = Modifier) {
     GlassCard(modifier = modifier, cornerRadius = Dimens.RadiusSm) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(Dimens.SpacingSm)
+        ) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 "₹${amount.formatWithComma()}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = color
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -220,36 +247,44 @@ fun SwipeableTransactionRow(
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { direction ->
             when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> { onDelete(); true }
-                SwipeToDismissBoxValue.EndToStart -> { onEdit(); false }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onDelete()
+                    true
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onEdit()
+                    false
+                }
                 else -> false
             }
         }
     )
-
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) dismissState.reset()
-    }
 
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         backgroundContent = {
-            when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(ExpenseRose.copy(alpha = 0.15f)).padding(horizontal = Dimens.SpacingXxl),
-                        contentAlignment = Alignment.CenterStart
-                    ) { Icon(Icons.Default.DeleteForever, "Delete", tint = ExpenseRose) }
+            val color = when (dismissState.dismissDirection) {
+                SwipeToDismissBoxValue.StartToEnd -> ExpenseRose.copy(alpha = 0.2f)
+                SwipeToDismissBoxValue.EndToStart -> Primary.copy(alpha = 0.2f)
+                else -> Color.Transparent
+            }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(Dimens.RadiusSm))
+                    .background(color)
+                    .padding(horizontal = Dimens.SpacingXxl),
+                contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) 
+                    Alignment.CenterStart else Alignment.CenterEnd
+            ) {
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
+                    Icon(Icons.Default.DeleteForever, "Delete", tint = ExpenseRose)
+                } else if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                    Icon(Icons.Default.Edit, "Edit", tint = Primary)
                 }
-                SwipeToDismissBoxValue.EndToStart -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(Primary.copy(alpha = 0.15f)).padding(horizontal = Dimens.SpacingXxl),
-                        contentAlignment = Alignment.CenterEnd
-                    ) { Icon(Icons.Default.Edit, "Edit", tint = Primary) }
-                }
-                else -> {}
             }
         }
     ) {
@@ -260,12 +295,15 @@ fun SwipeableTransactionRow(
 @Composable
 fun GlassTransactionItem(tx: TransactionUi) {
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = Dimens.RadiusSm) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(Dimens.SpacingMd)
+        ) {
             Box(
                 modifier = Modifier.size(40.dp).clip(CircleShape).background(Primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(categoryIcon(tx.category), "${tx.category} category", tint = Primary, modifier = Modifier.size(Dimens.IconMd))
+                Icon(categoryIcon(tx.category), null, tint = Primary, modifier = Modifier.size(Dimens.IconMd))
             }
             Spacer(Modifier.width(Dimens.SpacingMd))
             Column(Modifier.weight(1f)) {
@@ -273,13 +311,19 @@ fun GlassTransactionItem(tx: TransactionUi) {
                 Text(tx.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                if (tx.amount < 0) "−₹${(-tx.amount).formatWithComma()}" else "+₹${tx.amount.formatWithComma()}",
+                valStr(tx.amount),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (tx.amount < 0) ExpenseRose else IncomeGreen
             )
         }
     }
+}
+
+private fun valStr(amount: Int): String {
+    val absVal = if (amount < 0) -amount else amount
+    val prefix = if (amount < 0) "−₹" else "+₹"
+    return "$prefix${absVal.formatWithComma()}"
 }
 
 @Composable
@@ -289,7 +333,12 @@ fun GlassEmptyState() {
             modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingHuge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(Icons.Outlined.ReceiptLong, "No transactions", tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(Dimens.IconHero))
+            Icon(
+                Icons.AutoMirrored.Outlined.ReceiptLong, 
+                null, 
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), 
+                modifier = Modifier.size(Dimens.IconHero)
+            )
             Spacer(Modifier.height(Dimens.SpacingLg))
             Text("No transactions yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Your financial activity will appear here", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), textAlign = TextAlign.Center)
@@ -297,21 +346,13 @@ fun GlassEmptyState() {
     }
 }
 
-data class TransactionUi(val title: String, val category: String, val amount: Int, val date: LocalDate)
-
-fun TransactionUi.dateLabel(): String {
-    val today = LocalDate.now()
-    return when {
-        date == today -> "Today"
-        date == today.minusDays(1) -> "Yesterday"
-        date.year == today.year -> date.format(DateTimeFormatter.ofPattern("dd MMM"))
-        else -> date.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
-    }
-}
-
 enum class TransactionFilter { ALL, INCOME, EXPENSE }
 
 enum class DateRangeFilter(val label: String) {
-    LAST_7_DAYS("Last 7 days"), LAST_30_DAYS("Last 30 days"), LAST_3_MONTHS("Last 3 months"),
-    LAST_6_MONTHS("Last 6 months"), LAST_1_YEAR("Last 1 year"), ALL_TIME("All time")
+    LAST_7_DAYS("Last 7 days"), 
+    LAST_30_DAYS("Last 30 days"), 
+    LAST_3_MONTHS("Last 3 months"),
+    LAST_6_MONTHS("Last 6 months"), 
+    LAST_1_YEAR("Last 1 year"), 
+    ALL_TIME("All time")
 }

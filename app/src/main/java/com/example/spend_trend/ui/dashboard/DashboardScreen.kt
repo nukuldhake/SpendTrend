@@ -9,9 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,7 +50,8 @@ fun DashboardScreen(
     val viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModelFactory(
             txRepository = TransactionRepository(db.transactionDao()),
-            budgetRepository = BudgetRepository(db.budgetDao())
+            budgetRepository = BudgetRepository(db.budgetDao()),
+            billRepository = com.example.spend_trend.data.repository.BillRepository(db.billDao())
         )
     )
 
@@ -57,6 +60,7 @@ fun DashboardScreen(
     val todaySpend by viewModel.todayTransactions.collectAsState(initial = 0)
     val monthlyTrend by viewModel.monthlyTrend.collectAsState(initial = emptyList())
     val budgetProgress by viewModel.budgetProgress.collectAsState(initial = 0f)
+    val pendingBills by viewModel.pendingBills.collectAsState(initial = emptyList())
     val balance = summary.net
 
     var visible by remember { mutableStateOf(false) }
@@ -76,6 +80,18 @@ fun DashboardScreen(
                 enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { -60 }
             ) {
                 HeroBalanceCard(balance, summary.income, summary.expense)
+            }
+        }
+
+        // ── Upcoming Bills Alert ──
+        if (pendingBills.isNotEmpty()) {
+            val billsToNotify = pendingBills.filter { 
+                it.dueDateMillis <= System.currentTimeMillis() + (86400000 * 3) // Due within 3 days
+            }
+            if (billsToNotify.isNotEmpty()) {
+                item {
+                    UpcomingBillAlert(billsToNotify.size, billsToNotify.sumOf { it.amount })
+                }
             }
         }
 
@@ -243,7 +259,7 @@ fun DashboardScreen(
         if (recentTx.isEmpty()) {
             item { EmptyState() }
         } else {
-            items(recentTx) { tx ->
+            itemsIndexed(recentTx, key = { index, item -> "dashboard_${item.id}_${index}" }) { _, tx ->
                 GlassTransactionRow(tx)
             }
         }
@@ -583,12 +599,56 @@ private fun EmptyState() {
     }
 }
 
+@Composable
+private fun UpcomingBillAlert(count: Int, total: Int) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(ExpenseRose.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.PriorityHigh,
+                    contentDescription = null,
+                    tint = ExpenseRose,
+                    modifier = Modifier.size(Dimens.IconMd)
+                )
+            }
+            Spacer(Modifier.width(Dimens.SpacingMd))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "$count Upcoming Bills",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = ExpenseRose
+                )
+                Text(
+                    "Total amount: ₹${total.formatWithComma()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+private fun Int.formatWithComma(): String = "%,d".format(this)
+
 // ════════════════════════════════════════════════
-//  Data classes & Factory
+//  Factory & Helpers
 // ════════════════════════════════════════════════
-data class DashboardTx(
-    val title: String,
-    val category: String,
-    val amount: Int
-)
 // Factory removed — moved to DashboardViewModel.kt

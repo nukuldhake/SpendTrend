@@ -21,6 +21,12 @@ interface TransactionDao {
     @Delete
     suspend fun delete(transaction: TransactionEntity)
 
+    @Query("DELETE FROM transactions WHERE id = :id")
+    suspend fun deleteById(id: Int)
+
+    @Query("SELECT * FROM transactions WHERE referenceNo = :refNo LIMIT 1")
+    suspend fun getByReferenceNo(refNo: String): TransactionEntity?
+
     // Optional: monthly totals example (for Dashboard later)
     @Query("""
         SELECT SUM(amount) 
@@ -42,4 +48,11 @@ interface TransactionDao {
         WHERE amount < 0 AND dateMillis >= :startMillis AND dateMillis <= :endMillis
     """)
     suspend fun getExpenseForPeriod(startMillis: Long, endMillis: Long): Int?
+
+    @Query("""
+        SELECT SUM(amount) 
+        FROM transactions 
+        WHERE category = :category AND amount < 0 AND dateMillis >= :startMillis AND dateMillis <= :endMillis
+    """)
+    suspend fun getCategoryExpenseForPeriod(category: String, startMillis: Long, endMillis: Long): Int?
 }

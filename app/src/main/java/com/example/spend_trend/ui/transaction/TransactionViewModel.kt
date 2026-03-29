@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spend_trend.data.TransactionEntity
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.FakeData
+
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -62,44 +62,30 @@ class TransactionViewModel(
     // Delete
     fun deleteTransaction(ui: TransactionUi) {
         viewModelScope.launch {
-            val entity = ui.toEntity()
-            repository.delete(entity)
+            if (ui.id > 0) {
+                repository.deleteById(ui.id)
+            } else {
+                // fallback for entities not yet in DB (unlikely for delete but safe)
+                val entity = ui.toEntity()
+                repository.delete(entity)
+            }
         }
     }
 
     // Export to CSV
     fun exportToCsv(context: Context) {
         viewModelScope.launch {
-            val transactions = repository.allTransactions.map { it.reversed() }.stateIn(viewModelScope).value
-            if (transactions.isEmpty()) return@launch
-
-            val header = "Date,Title,Category,Amount\n"
-            val rows = transactions.joinToString("\n") { tx ->
-                val date = LocalDate.ofEpochDay(tx.dateMillis / 86400000L).format(DateTimeFormatter.ISO_DATE)
-                "\"$date\",\"${tx.title}\",\"${tx.category}\",${tx.amount}"
-            }
-            val csvData = header + rows
-
-            try {
-                val file = File(context.cacheDir, "spendtrend_export.csv")
-                file.writeText(csvData)
-                
-                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/csv"
-                    putExtra(Intent.EXTRA_SUBJECT, "SpendTrend Export")
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            repository.allTransactions.collect { transactions ->
+                if (transactions.isNotEmpty()) {
+                    com.example.spend_trend.ui.util.ExportUtils.exportTransactionsToCsv(context, transactions)
                 }
-                context.startActivity(Intent.createChooser(intent, "Export CSV"))
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
         }
     }
 
     // Helper converters (Entity ↔ Ui)
     private fun TransactionEntity.toUi() = TransactionUi(
+        id = id,
         title = title,
         category = category,
         amount = amount,
@@ -107,6 +93,7 @@ class TransactionViewModel(
     )
 
     private fun TransactionUi.toEntity() = TransactionEntity(
+        id = id,
         title = title,
         category = category,
         amount = amount,

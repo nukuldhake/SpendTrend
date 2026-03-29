@@ -10,6 +10,7 @@ sealed class Screen(val route: String) {
     object Budgets        : Screen("budgets")
     object Forecast       : Screen("forecast")
     object Copilot        : Screen("copilot")
+    object Bills          : Screen("bills")
     object AddTransaction : Screen("add_transaction")
     object Profile        : Screen("profile")
     object Settings       : Screen("settings")
@@ -19,6 +20,8 @@ sealed class Screen(val route: String) {
         fun createRoute(budgetId: Int) = "budget_detail/$budgetId"
     }
     object AddBudget      : Screen("add_budget")
+    object Goals          : Screen("goals")
+    object Analytics      : Screen("analytics")
     object Login          : Screen("login")
     object Register       : Screen("register")
     object PinSetup       : Screen("pin_setup")

@@ -12,7 +12,9 @@ data class TransactionEntity(
     val amount: Int,           // positive = income, negative = expense
     val dateMillis: Long,      // we store date as millis for Room
     val description: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val bankName: String? = null,
+    val referenceNo: String? = null
 ) {
     // Helper to convert back to LocalDate when needed
     fun getDate(): LocalDate = LocalDate.ofEpochDay(dateMillis / 86400000L)

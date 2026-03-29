@@ -35,6 +35,8 @@ import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.components.GlassCard
 import com.example.spend_trend.ui.components.GradientCard
 import com.example.spend_trend.ui.theme.*
+import com.example.spend_trend.data.model.ForecastInsight
+import com.example.spend_trend.data.model.InsightType
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -199,47 +201,79 @@ fun ForecastScreen() {
             }
         }
 
-        // ── Risk Banner ──
-        val riskLevel = when {
-            trendPercentage > 20 -> "High risk of overspending"
-            trendPercentage > 5 -> "Moderate increase expected"
-            else -> "Stable spending trend"
-        }
-        val riskColor = when {
-            trendPercentage > 20 -> ExpenseRose
-            trendPercentage > 5 -> WarningAmber
-            else -> IncomeGreen
-        }
-
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(riskColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
+        // ── AI Insights ──
+        val insights by viewModel.insights.collectAsState()
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "AI Spending Insights",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            Surface(
+                color = Primary.copy(alpha = 0.12f),
+                shape = CircleShape,
+                modifier = Modifier.offset(y = (-2).dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        if (trendPercentage > 5) Icons.Default.WarningAmber else Icons.Default.CheckCircle,
-                        contentDescription = "Risk indicator",
-                        tint = riskColor,
-                        modifier = Modifier.size(Dimens.IconMd)
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(Modifier.width(Dimens.SpacingXs))
+                    Text(
+                        "Gemini",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
                     )
                 }
-                Spacer(Modifier.width(Dimens.SpacingMd))
-                Column {
-                    Text(
-                        riskLevel,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = riskColor
-                    )
-                    Text(
-                        "Review subscriptions and discretionary spending",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            }
+        }
+
+        insights.forEach { insight ->
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val icon = when (insight.type) {
+                        InsightType.POSITIVE -> Icons.Default.CheckCircle
+                        InsightType.NEGATIVE -> Icons.Default.TrendingUp
+                        InsightType.WARNING -> Icons.Default.WarningAmber
+                        else -> Icons.Default.Lightbulb
+                    }
+                    val color = when (insight.type) {
+                        InsightType.POSITIVE -> IncomeGreen
+                        InsightType.NEGATIVE -> ExpenseRose
+                        InsightType.WARNING -> WarningAmber
+                        else -> Primary
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(color.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(Dimens.IconMd))
+                    }
+                    
+                    Spacer(Modifier.width(Dimens.SpacingMd))
+                    
+                    Column {
+                        Text(insight.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
+                        Text(insight.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

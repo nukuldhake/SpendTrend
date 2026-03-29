@@ -1,11 +1,13 @@
 package com.example.spend_trend.ui.dashboard
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.spend_trend.data.BillEntity
 import com.example.spend_trend.data.TransactionEntity
+import com.example.spend_trend.data.repository.BillRepository
 import com.example.spend_trend.data.repository.BudgetRepository
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.transaction.TransactionUi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,13 +18,22 @@ import java.time.ZoneOffset
 
 class DashboardViewModel(
     private val txRepository: TransactionRepository,
-    private val budgetRepository: BudgetRepository
+    private val budgetRepository: BudgetRepository,
+    private val billRepository: BillRepository
 ) : ViewModel() {
+
+    val pendingBills: StateFlow<List<BillEntity>> = billRepository.pendingBills
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val recentTransactions: StateFlow<List<DashboardTx>> = txRepository.recentTransactions
         .map { entities ->
             entities.map { entity ->
                 DashboardTx(
+                    id = entity.id,
                     title = entity.title,
                     category = entity.category,
                     amount = entity.amount
@@ -112,25 +123,18 @@ class DashboardViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 }
 
+data class DashboardTx(val id: Int, val title: String, val category: String, val amount: Int)
 data class MonthSummary(val income: Int, val expense: Int, val net: Int)
-
-fun TransactionEntity.toUi(): TransactionUi {
-    return TransactionUi(
-        title = title,
-        category = category,
-        amount = amount,
-        date = LocalDate.ofEpochDay(dateMillis / 86400000L)
-    )
-}
 
 class DashboardViewModelFactory(
     private val txRepository: TransactionRepository,
-    private val budgetRepository: BudgetRepository
-) : androidx.lifecycle.ViewModelProvider.Factory {
+    private val budgetRepository: BudgetRepository,
+    private val billRepository: BillRepository
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return DashboardViewModel(txRepository, budgetRepository) as T
+            return DashboardViewModel(txRepository, budgetRepository, billRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

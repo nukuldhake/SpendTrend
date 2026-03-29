@@ -2,9 +2,7 @@ package com.example.spend_trend.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -14,8 +12,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -44,6 +41,8 @@ import com.example.spend_trend.ui.profile.ProfileScreen
 import com.example.spend_trend.ui.settings.SettingsScreen
 import com.example.spend_trend.ui.transaction.AddTransactionScreen
 import com.example.spend_trend.ui.transaction.TransactionHistoryScreen
+import com.example.spend_trend.ui.analytics.AnalyticsScreen
+import com.example.spend_trend.ui.goals.GoalScreen
 import com.example.spend_trend.ui.theme.*
 import com.example.spend_trend.ui.auth.*
 import com.example.spend_trend.data.UserPreferences
@@ -154,7 +153,7 @@ fun AppScaffold() {
                 enterTransition = { fadeIn(animationSpec = tween(300)) },
                 exitTransition = { fadeOut(animationSpec = tween(200)) }
             ) {
-                // ── Auth Flow ──
+                // Auth Routes
                 composable(Screen.Register.route) {
                     RegisterScreen(
                         onRegisterSuccess = { 
@@ -163,9 +162,7 @@ fun AppScaffold() {
                                 popUpTo(Screen.Register.route) { inclusive = true }
                             }
                         },
-                        onNavigateToLogin = {
-                            navController.navigate(Screen.Login.route)
-                        }
+                        onNavigateToLogin = { navController.navigate(Screen.Login.route) }
                     )
                 }
 
@@ -191,13 +188,11 @@ fun AppScaffold() {
                                 popUpTo(Screen.Login.route) { inclusive = true }
                             }
                         },
-                        onNavigateToRegister = {
-                            navController.navigate(Screen.Register.route)
-                        }
+                        onNavigateToRegister = { navController.navigate(Screen.Register.route) }
                     )
                 }
 
-                // ── Main Content ──
+                // Main Routes
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         onViewAllTransactions = {
@@ -222,292 +217,148 @@ fun AppScaffold() {
                     )
                 }
 
-                composable(Screen.Forecast.route) {
-                    ForecastScreen()
-                }
-
-                composable(Screen.Copilot.route) {
-                    CopilotScreen()
-                }
-
-                composable(Screen.Profile.route) {
-                    ProfileScreen(onBack = { navController.popBackStack() })
-                }
-
-                composable(Screen.Settings.route) {
-                    SettingsScreen(onBack = { navController.popBackStack() })
-                }
-
+                composable(Screen.Forecast.route) { ForecastScreen() }
+                composable(Screen.Copilot.route) { CopilotScreen() }
+                composable(Screen.Goals.route) { GoalScreen() }
+                composable(Screen.Analytics.route) { AnalyticsScreen() }
+                composable(Screen.Profile.route) { ProfileScreen(onBack = { navController.popBackStack() }) }
+                composable(Screen.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }) }
                 composable(Screen.Help.route) { HelpScreen(onBack = { navController.popBackStack() }) }
                 composable(Screen.Contact.route) { ContactUsScreen(onBack = { navController.popBackStack() }) }
 
                 composable(Screen.AddTransaction.route) {
                     AddTransactionScreen(
                         onSave = { _ ->
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Transaction added!", "View")
-                            }
+                            coroutineScope.launch { snackbarHostState.showSnackbar("Transaction added!", "View") }
                         },
                         onDismiss = { navController.popBackStack() },
                         snackbarHostState = snackbarHostState
                     )
                 }
 
-                // ── Budget Detail ──
                 composable(
                     route = Screen.BudgetDetail.route,
                     arguments = listOf(navArgument("budgetId") { type = NavType.IntType })
                 ) { backStackEntry ->
                     val budgetId = backStackEntry.arguments?.getInt("budgetId") ?: 0
                     val budgetVm: BudgetViewModel = viewModel(
-                        factory = BudgetViewModelFactory(
-                            BudgetRepository(AppDatabase.getDatabase(navController.context).budgetDao())
-                        )
+                        factory = BudgetViewModelFactory(BudgetRepository(AppDatabase.getDatabase(navController.context).budgetDao()))
                     )
-                    BudgetDetailScreen(
-                        viewModel = budgetVm,
-                        budgetId = budgetId,
-                        onBack = { navController.popBackStack() }
-                    )
+                    BudgetDetailScreen(viewModel = budgetVm, budgetId = budgetId, onBack = { navController.popBackStack() })
                 }
 
-                // ── Add Budget ──
                 composable(Screen.AddBudget.route) {
                     val budgetVm: BudgetViewModel = viewModel(
-                        factory = BudgetViewModelFactory(
-                            BudgetRepository(AppDatabase.getDatabase(navController.context).budgetDao())
-                        )
+                        factory = BudgetViewModelFactory(BudgetRepository(AppDatabase.getDatabase(navController.context).budgetDao()))
                     )
-                    AddBudgetScreen(
-                        viewModel = budgetVm,
-                        onBack = { navController.popBackStack() }
-                    )
+                    AddBudgetScreen(viewModel = budgetVm, onBack = { navController.popBackStack() })
                 }
             }
         }
     }
 }
 
-// ────────────────────────────────────────────────
-// Top App Bar
-// ────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SpendTrendTopBar(
-    currentRoute: String?,
-    onDrawerOpen: () -> Unit
-) {
+private fun SpendTrendTopBar(currentRoute: String?, onDrawerOpen: () -> Unit) {
     TopAppBar(
         title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(
                     imageVector = screenIcon(currentRoute),
-                    contentDescription = "Current screen icon",
+                    contentDescription = null,
                     tint = colorScheme.primary,
                     modifier = Modifier.size(Dimens.IconLg)
                 )
                 Text(
                     text = screenTitle(currentRoute),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = colorScheme.primary
-                    ),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = colorScheme.primary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         },
         actions = {
-            ProfileAvatar(
-                initials = "N",
-                onClick = onDrawerOpen,
-                modifier = Modifier.padding(end = Dimens.SpacingLg)
-            )
+            ProfileAvatar(initials = "N", onClick = onDrawerOpen, modifier = Modifier.padding(end = Dimens.SpacingLg))
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = colorScheme.surface.copy(alpha = 0.85f),
-            titleContentColor = colorScheme.onSurface,
-            actionIconContentColor = colorScheme.onSurface
-        )
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = colorScheme.surface.copy(alpha = 0.85f))
     )
 }
 
-// ────────────────────────────────────────────────
-// Bottom Navigation Bar
-// ────────────────────────────────────────────────
 @Composable
-private fun SpendTrendBottomBar(
-    currentDestination: androidx.navigation.NavDestination?,
-    onNavigate: (String) -> Unit
-) {
-    NavigationBar(
-        containerColor = colorScheme.surface.copy(alpha = 0.90f),
-        tonalElevation = Dimens.ElevationNone,
-        contentColor = colorScheme.onSurfaceVariant
-    ) {
+private fun SpendTrendBottomBar(currentDestination: androidx.navigation.NavDestination?, onNavigate: (String) -> Unit) {
+    NavigationBar(containerColor = colorScheme.surface.copy(alpha = 0.90f), tonalElevation = Dimens.ElevationNone) {
         listOf(
             BottomNavItem.Dashboard,
             BottomNavItem.Transactions,
             BottomNavItem.Budgets,
-            BottomNavItem.Forecast,
+            BottomNavItem.Analytics,
             BottomNavItem.Copilot
         ).forEach { item ->
             val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onNavigate(item.route) },
-                icon = {
-                    Icon(
-                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.contentDescription
-                    )
-                },
+                icon = { Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, null) },
                 label = { Text(item.label) },
                 alwaysShowLabel = false,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colorScheme.onPrimary,
-                    unselectedIconColor = colorScheme.onSurfaceVariant,
-                    selectedTextColor = colorScheme.primary,
-                    indicatorColor = colorScheme.primary
-                )
+                colors = NavigationBarItemDefaults.colors(selectedIconColor = colorScheme.onPrimary, indicatorColor = colorScheme.primary)
             )
         }
     }
 }
 
-// ────────────────────────────────────────────────
-// Drawer Content
-// ────────────────────────────────────────────────
 @Composable
-private fun DrawerContent(
-    onNavigate: (String) -> Unit,
-    onLogout: () -> Unit
-) {
-    ModalDrawerSheet(
-        drawerContainerColor = colorScheme.background,
-        drawerContentColor = colorScheme.onSurface
-    ) {
+private fun DrawerContent(onNavigate: (String) -> Unit, onLogout: () -> Unit) {
+    ModalDrawerSheet(drawerContainerColor = colorScheme.background) {
         DrawerHeader()
         HorizontalDivider(thickness = 1.dp)
 
-        DrawerItem(Icons.Default.Person, "Profile", "Open profile screen") {
-            onNavigate(Screen.Profile.route)
-        }
+        DrawerItem(Icons.Default.Stars, "Goals", "Savings targets") { onNavigate(Screen.Goals.route) }
+        DrawerItem(Icons.AutoMirrored.Filled.TrendingUp, "Forecast", "Future trends") { onNavigate(Screen.Forecast.route) }
+        HorizontalDivider(thickness = 1.dp)
 
-        DrawerItem(Icons.Default.Settings, "Settings", "Open settings") {
-            onNavigate(Screen.Settings.route)
-        }
-
-        DrawerItem(Icons.Default.Help, "Help", "Open help and FAQ") {
-            onNavigate(Screen.Help.route)
-        }
-
-        DrawerItem(Icons.Default.Email, "Contact Us", "Open contact form") {
-            onNavigate(Screen.Contact.route)
-        }
+        DrawerItem(Icons.Default.Person, "Profile", "User profile") { onNavigate(Screen.Profile.route) }
+        DrawerItem(Icons.Default.Settings, "Settings", "Preferences") { onNavigate(Screen.Settings.route) }
+        DrawerItem(Icons.AutoMirrored.Filled.Help, "Help", "FAQ") { onNavigate(Screen.Help.route) }
+        DrawerItem(Icons.Default.Email, "Contact Us", "Support") { onNavigate(Screen.Contact.route) }
 
         HorizontalDivider(thickness = 1.dp)
-        Spacer(Modifier.height(Dimens.SpacingSm))
-
-        Text(
-            text = "Theme",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = Dimens.SpacingSm)
-        )
-
+        Text("Theme", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 28.dp, vertical = Dimens.SpacingSm))
         ThemeOption("Light", ThemeMode.LIGHT)
         ThemeOption("Dark", ThemeMode.DARK)
         ThemeOption("System", ThemeMode.SYSTEM)
 
         Spacer(Modifier.weight(1f))
-        DrawerItem(
-            icon = Icons.Default.Logout,
-            label = "Log Out",
-            contentDesc = "Log out of the app",
-            color = colorScheme.error,
-            onClick = onLogout
-        )
+        DrawerItem(Icons.AutoMirrored.Filled.Logout, "Log Out", "Exit", colorScheme.error, onLogout)
     }
 }
 
-// ────────────────────────────────────────────────
-// Reusable Sub-components
-// ────────────────────────────────────────────────
-
 @Composable
-private fun ProfileAvatar(
-    initials: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun ProfileAvatar(initials: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(Primary, Secondary)))
-            .clickable(onClick = onClick),
+        modifier = modifier.size(40.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Primary, Secondary))).clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initials.uppercase(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
+        Text(text = initials.uppercase(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 
 @Composable
 private fun DrawerHeader() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(Dimens.SpacingXxl),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(Primary, Secondary))),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "N",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+    Column(modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingXxl), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Primary, Secondary))), contentAlignment = Alignment.Center) {
+            Text("N", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color.White)
         }
         Spacer(Modifier.height(Dimens.SpacingLg))
         Text(ThemePreferences.userName, style = MaterialTheme.typography.titleLarge)
-        Text(
-            UserPreferences.getEmail() ?: "Welcome to SpendTrend",
-            style = MaterialTheme.typography.bodyMedium,
-            color = colorScheme.onSurfaceVariant
-        )
+        Text(UserPreferences.getEmail() ?: "Welcome to SpendTrend", style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun DrawerItem(
-    icon: ImageVector,
-    label: String,
-    contentDesc: String,
-    color: Color = colorScheme.onSurface,
-    onClick: () -> Unit
-) {
-    NavigationDrawerItem(
-        icon = { Icon(icon, contentDescription = contentDesc, tint = color) },
-        label = { Text(label, color = color) },
-        selected = false,
-        onClick = onClick,
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    )
+private fun DrawerItem(icon: ImageVector, label: String, contentDesc: String, color: Color = colorScheme.onSurface, onClick: () -> Unit) {
+    NavigationDrawerItem(icon = { Icon(icon, contentDesc, tint = color) }, label = { Text(label, color = color) }, selected = false, onClick = onClick, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
 }
 
 @Composable
@@ -516,52 +367,33 @@ private fun ThemeOption(label: String, mode: ThemeMode) {
         label = { Text(label) },
         selected = ThemePreferences.themeMode == mode,
         onClick = { ThemePreferences.updateTheme(mode) },
-        icon = {
-            Icon(
-                imageVector = when (mode) {
-                    ThemeMode.LIGHT -> Icons.Default.LightMode
-                    ThemeMode.DARK -> Icons.Default.DarkMode
-                    ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
-                },
-                contentDescription = "Switch to $label theme"
-            )
-        },
+        icon = { Icon(when(mode) { ThemeMode.LIGHT -> Icons.Default.LightMode; ThemeMode.DARK -> Icons.Default.DarkMode; else -> Icons.Default.BrightnessAuto }, null) },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )
 }
 
-// ────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────
-
 private fun screenTitle(route: String?): String = when (route) {
-    Screen.Dashboard.route      -> "Dashboard"
-    Screen.Transactions.route   -> "Transactions"
-    Screen.Budgets.route        -> "Budgets"
-    Screen.Forecast.route       -> "Forecast"
-    Screen.Copilot.route        -> "Copilot"
-    Screen.AddTransaction.route -> "Add Transaction"
-    Screen.BudgetDetail.route   -> "Budget Detail"
-    Screen.AddBudget.route      -> "Add Budget"
-    Screen.Profile.route        -> "Profile"
-    Screen.Settings.route       -> "Settings"
-    Screen.Help.route           -> "Help"
-    Screen.Contact.route        -> "Contact Us"
-    else                        -> "SpendTrend"
+    Screen.Dashboard.route -> "Dashboard"
+    Screen.Transactions.route -> "Transactions"
+    Screen.Budgets.route -> "Budgets"
+    Screen.Forecast.route -> "Forecast"
+    Screen.Copilot.route -> "Copilot"
+    Screen.Goals.route -> "Goals"
+    Screen.Analytics.route -> "Analytics"
+    Screen.Profile.route -> "Profile"
+    Screen.Settings.route -> "Settings"
+    else -> "SpendTrend"
 }
 
 private fun screenIcon(route: String?): ImageVector = when (route) {
-    Screen.Dashboard.route      -> Icons.Default.Dashboard
-    Screen.Transactions.route   -> Icons.Default.ReceiptLong
-    Screen.Budgets.route        -> Icons.Default.Savings
-    Screen.Forecast.route       -> Icons.Default.AutoGraph
-    Screen.Copilot.route        -> Icons.Default.SmartToy
-    Screen.AddTransaction.route -> Icons.Default.Add
-    Screen.BudgetDetail.route   -> Icons.Default.Savings
-    Screen.AddBudget.route      -> Icons.Default.Add
-    Screen.Settings.route       -> Icons.Default.Settings
-    Screen.Profile.route        -> Icons.Default.Person
-    Screen.Help.route           -> Icons.Default.Help
-    Screen.Contact.route        -> Icons.Default.Email
-    else                        -> Icons.Default.Info
+    Screen.Dashboard.route -> Icons.Default.Dashboard
+    Screen.Transactions.route -> Icons.AutoMirrored.Filled.ReceiptLong
+    Screen.Budgets.route -> Icons.Default.Savings
+    Screen.Forecast.route -> Icons.Default.AutoGraph
+    Screen.Analytics.route -> Icons.Default.PieChart
+    Screen.Copilot.route -> Icons.Default.SmartToy
+    Screen.Goals.route -> Icons.Default.Stars
+    Screen.Settings.route -> Icons.Default.Settings
+    Screen.Profile.route -> Icons.Default.Person
+    else -> Icons.Default.Info
 }

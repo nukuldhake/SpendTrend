@@ -6,12 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [TransactionEntity::class, BudgetEntity::class], version = 2, exportSchema = false)
+@Database(entities = [TransactionEntity::class, BudgetEntity::class, BillEntity::class, GoalEntity::class], version = 5, exportSchema = false)
 @TypeConverters(com.example.spend_trend.data.Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun billDao(): BillDao
+    abstract fun goalDao(): GoalDao
 
     companion object {
         @Volatile

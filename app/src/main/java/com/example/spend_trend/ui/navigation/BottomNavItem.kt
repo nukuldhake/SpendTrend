@@ -36,12 +36,12 @@ sealed class BottomNavItem(
         contentDescription = "Budgets overview"
     )
 
-    object Forecast : BottomNavItem(
-        route = Screen.Forecast.route,
-        label = "Forecast",
-        selectedIcon = Icons.Filled.TrendingUp,
-        unselectedIcon = Icons.Outlined.TrendingUp,
-        contentDescription = "Spending forecast"
+    object Analytics : BottomNavItem(
+        route = Screen.Analytics.route,
+        label = "Analytics",
+        selectedIcon = Icons.Filled.PieChart,
+        unselectedIcon = Icons.Outlined.PieChart,
+        contentDescription = "Spending analytics"
     )
 
     object Copilot : BottomNavItem(

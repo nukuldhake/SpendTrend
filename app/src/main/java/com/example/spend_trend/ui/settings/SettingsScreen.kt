@@ -47,9 +47,25 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
                     Text("Auto-track transactions", style = MaterialTheme.typography.titleMedium)
                     Text("Read bank SMS & emails", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissions ->
+                    val granted = permissions.getOrDefault(android.Manifest.permission.RECEIVE_SMS, false)
+                    ThemePreferences.updateAutoTracking(granted)
+                }
+
                 Switch(
                     checked = ThemePreferences.autoTrackingEnabled, 
-                    onCheckedChange = { ThemePreferences.updateAutoTracking(it) }, 
+                    onCheckedChange = { isChecked ->
+                        if (isChecked) {
+                            launcher.launch(arrayOf(
+                                android.Manifest.permission.RECEIVE_SMS,
+                                android.Manifest.permission.READ_SMS
+                            ))
+                        } else {
+                            ThemePreferences.updateAutoTracking(false)
+                        }
+                    }, 
                     colors = SwitchDefaults.colors(checkedTrackColor = Primary)
                 )
             }

@@ -2,9 +2,9 @@ package com.example.spend_trend.ui.profile
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,15 +16,33 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.spend_trend.data.UserPreferences
 import com.example.spend_trend.ui.components.GlassCard
 import com.example.spend_trend.ui.components.GlassTopBar
 import com.example.spend_trend.ui.theme.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onBack: () -> Unit = {}) {
+fun ProfileScreen(
+    onBack: () -> Unit = {},
+    onLogout: () -> Unit = {}
+) {
     var isEditingName by remember { mutableStateOf(false) }
-    var tempName by remember { mutableStateOf(ThemePreferences.userName) }
+    var userName by remember { mutableStateOf(UserPreferences.getName() ?: "User") }
+    val userEmail = UserPreferences.getEmail() ?: "user@example.com"
+    
+    val memberSinceMillis = UserPreferences.getMemberSinceMillis()
+    val memberSinceDate = try {
+        Instant.ofEpochMilli(memberSinceMillis)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+    } catch (e: Exception) {
+        "March 2026"
+    }
 
     Column(
         modifier = Modifier
@@ -33,7 +51,9 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         GlassTopBar(title = "Profile", onBack = onBack)
+        
         Spacer(Modifier.height(Dimens.SpacingLg))
+        
         // Gradient Avatar
         Box(
             modifier = Modifier
@@ -43,7 +63,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                ThemePreferences.userName.firstOrNull()?.uppercase() ?: "N",
+                userName.firstOrNull()?.uppercase() ?: "U",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -53,15 +73,23 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
         Spacer(Modifier.height(Dimens.SpacingLg))
 
         if (isEditingName) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
                 OutlinedTextField(
-                    value = tempName,
-                    onValueChange = { tempName = it },
+                    value = userName,
+                    onValueChange = { userName = it },
+                    label = { Text("Display Name") },
                     singleLine = true,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.width(200.dp)
                 )
+                Spacer(Modifier.width(Dimens.SpacingSm))
                 IconButton(onClick = { 
-                    if (tempName.isNotBlank()) ThemePreferences.updateUserName(tempName)
+                    if (userName.isNotBlank()) {
+                        UserPreferences.updateName(userName)
+                        ThemePreferences.updateUserName(userName) 
+                    }
                     isEditingName = false 
                 }) {
                     Icon(Icons.Default.Check, "Save", tint = Primary)
@@ -69,17 +97,18 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(ThemePreferences.userName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                IconButton(onClick = { tempName = ThemePreferences.userName; isEditingName = true }) {
-                    Icon(Icons.Default.Edit, "Edit name", tint = Primary)
+                Text(userName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                IconButton(onClick = { isEditingName = true }) {
+                    Icon(Icons.Default.Edit, "Edit name", tint = Primary, modifier = Modifier.size(20.dp))
                 }
             }
         }
 
-        Text("nukul@example.com", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(userEmail, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Spacer(Modifier.height(Dimens.SpacingHuge))
 
+        // Session Information Cards
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -89,7 +118,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                 Spacer(Modifier.width(Dimens.SpacingMd))
                 Column {
                     Text("Member since", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("March 2026", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text(memberSinceDate, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -101,11 +130,11 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                 Box(
                     Modifier.size(40.dp).clip(CircleShape).background(Secondary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Default.AttachMoney, "Currency", tint = Secondary, modifier = Modifier.size(Dimens.IconMd)) }
+                ) { Icon(Icons.Default.Security, "Security", tint = Secondary, modifier = Modifier.size(Dimens.IconMd)) }
                 Spacer(Modifier.width(Dimens.SpacingMd))
                 Column {
-                    Text("Preferred currency", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("INR (Indian Rupee)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text("Session Status", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Active (Secure)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -113,14 +142,18 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
         Spacer(Modifier.weight(1f))
 
         OutlinedButton(
-            onClick = {},
-            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                UserPreferences.logout()
+                onLogout()
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseRose),
-            border = BorderStroke(1.dp, ExpenseRose.copy(alpha = 0.5f))
+            border = BorderStroke(1.dp, ExpenseRose.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(16.dp)
         ) {
             Icon(Icons.Default.Logout, "Log out")
             Spacer(Modifier.width(Dimens.SpacingSm))
-            Text("Log Out")
+            Text("Log Out", fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(Dimens.SpacingHuge))

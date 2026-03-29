@@ -31,6 +31,7 @@ import kotlin.math.absoluteValue
 fun EditTransactionBottomSheet(
     transaction: TransactionUi,
     onUpdate: (TransactionUi) -> Unit,
+    onDelete: (TransactionUi) -> Unit,
     onDismiss: () -> Unit
 ) {
     var description by remember { mutableStateOf(transaction.title) }
@@ -40,6 +41,7 @@ fun EditTransactionBottomSheet(
     var transactionDate by remember { mutableStateOf(transaction.date) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showCategoryPicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val amount = amountText.toFloatOrNull() ?: 0f
     val isValid = description.isNotBlank() && amount > 0f && selectedCategory != null
@@ -61,8 +63,7 @@ fun EditTransactionBottomSheet(
                     },
                     actions = {
                         IconButton(onClick = {
-                            // TODO: later show delete confirmation dialog
-                            onDismiss()
+                            showDeleteConfirm = true
                         }) {
                             Icon(
                                 Icons.Default.Delete,
@@ -331,5 +332,31 @@ fun EditTransactionBottomSheet(
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Transaction") },
+            text = { Text("Are you sure you want to delete this transaction? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(transaction)
+                        showDeleteConfirm = false
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
