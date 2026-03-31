@@ -2,6 +2,8 @@ package com.example.spend_trend.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.spend_trend.data.network.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 
 object UserPreferences {
     private lateinit var prefs: SharedPreferences
@@ -14,6 +16,8 @@ object UserPreferences {
     private const val KEY_IS_LOGGED_IN = "is_logged_in"
     private const val KEY_USER_NAME = "user_name"
     private const val KEY_MEMBER_SINCE = "member_since_millis"
+
+    private val auth get() = SupabaseClient.client.auth
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -57,12 +61,21 @@ object UserPreferences {
     fun setLoggedIn(loggedIn: Boolean) {
         prefs.edit().putBoolean(KEY_IS_LOGGED_IN, loggedIn).apply()
     }
-
-    fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+    
+    fun isLoggedIn(): Boolean = auth.currentUserOrNull() != null
     
     fun hasPin(): Boolean = !prefs.getString(KEY_USER_PIN, null).isNullOrEmpty()
 
     fun logout() {
         prefs.edit().putBoolean(KEY_IS_LOGGED_IN, false).apply()
+        // Supabase signout is async, we handle it in the UI or let it be.
+    }
+
+    private const val KEY_SMS_SYNC_DONE = "sms_sync_done"
+
+    fun isSmsSyncDone(): Boolean = prefs.getBoolean(KEY_SMS_SYNC_DONE, false)
+
+    fun setSmsSyncDone(done: Boolean) {
+        prefs.edit().putBoolean(KEY_SMS_SYNC_DONE, done).apply()
     }
 }

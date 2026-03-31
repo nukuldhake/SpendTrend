@@ -28,61 +28,96 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
+        val pendingResult = goAsync()
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-        for (sms in messages) {
-            val body = sms.displayMessageBody
-            val sender = sms.displayOriginatingAddress ?: "Unknown"
+        
+        scope.launch {
+            try {
+                for (sms in messages) {
+                    val body = sms.displayMessageBody
+                    val sender = sms.displayOriginatingAddress ?: "Unknown"
 
-            Log.d("SmsReceiver", "Received SMS from $sender: $body")
-            
-            // 1. Check for transactions (Payments made)
-            val txParsed = SmsParser.parse(body)
-            if (txParsed != null) {
-                saveTransaction(context, txParsed)
-            }
+                    Log.d("SmsReceiver", "Received SMS from $sender: $body")
+                    
+                    // 1. Check for transactions (Payments made)
+                    val txParsed = SmsParser.parse(body)
+                    if (txParsed != null) {
+                        saveTransaction(context, txParsed)
+                    }
 
-            // 2. Check for bill reminders (Upcoming payments)
-            val billParsed = SmsParser.parseBill(body)
-            if (billParsed != null) {
-                saveBill(context, billParsed)
+                    // 2. Check for bill reminders (Upcoming payments)
+                    val billParsed = SmsParser.parseBill(body)
+                    if (billParsed != null) {
+                        saveBill(context, billParsed)
+                    }
+                }
+            } finally {
+                pendingResult.finish()
             }
         }
     }
 
-    private fun saveTransaction(context: Context, parsed: ParsedTransaction) {
-        scope.launch {
-            try {
-                val db = AppDatabase.getDatabase(context)
-                val dao = db.transactionDao()
-                
-                // Deduplication check
-                if (parsed.referenceNo != null) {
-                    val existing = dao.getByReferenceNo(parsed.referenceNo)
-                    if (existing != null) {
-                        Log.d("SmsReceiver", "Duplicate transaction detected: ${parsed.referenceNo}")
-                        return@launch
-                    }
+    private suspend fun saveTransaction(context: Context, parsed: ParsedTransaction) {
+        try {
+            val db = AppDatabase.getDatabase(context)
+            val dao = db.transactionDao()
+            
+            // Deduplication check
+            if (parsed.referenceNo != null) {
+                val existing = dao.getByReferenceNo(parsed.referenceNo)
+                if (existing != null) {
+                    Log.d("SmsReceiver", "Duplicate transaction detected: ${parsed.referenceNo}")
+                    return
                 }
-
-                val entity = TransactionEntity(
-                    title = parsed.merchant,
-                    category = parsed.category,
-                    amount = if (parsed.isExpense) -parsed.amount else parsed.amount,
-                    dateMillis = System.currentTimeMillis(),
-                    description = "Auto-tracked SMS${if (parsed.bankName != null) " (${parsed.bankName})" else ""}",
-                    bankName = parsed.bankName,
-                    referenceNo = parsed.referenceNo
-                )
-                dao.insert(entity)
-                Log.d("SmsReceiver", "Saved transaction: ${parsed.merchant} - ${parsed.amount}")
-
-                // --- Real-time Budget Check ---
-                if (parsed.isExpense) {
-                    performBudgetCheck(context, db, parsed.category)
-                }
-            } catch (e: Exception) {
-                Log.e("SmsReceiver", "Failed to save transaction", e)
             }
+
+            val entity = TransactionEntity(
+                title = parsed.merchant,
+                category = parsed.category,
+                amount = if (parsed.isExpense) -parsed.amount else parsed.amount,
+                dateMillis = System.currentTimeMillis(),
+                description = "Auto-tracked SMS${if (parsed.bankName != null) " (${parsed.bankName})" else ""}",
+                bankName = parsed.bankName,
+                referenceNo = parsed.referenceNo
+            )
+            dao.insert(entity)
+            Log.d("SmsReceiver", "Saved transaction: ${parsed.merchant} - ${parsed.amount}")
+
+            // --- Real-time Budget Check ---
+            if (parsed.isExpense) {
+                performBudgetCheck(context, db, parsed.category)
+            }
+        } catch (e: Exception) {
+            Log.e("SmsReceiver", "Failed to save transaction", e)
+        }
+    }
+
+    private suspend fun saveBill(context: Context, parsed: ParsedBill) {
+        try {
+            val db = AppDatabase.getDatabase(context)
+            val dao = db.billDao()
+
+            // Deduplication check
+            if (parsed.referenceNo != null) {
+                val existing = dao.getByReferenceNo(parsed.referenceNo)
+                if (existing != null) {
+                    Log.d("SmsReceiver", "Duplicate bill detected: ${parsed.referenceNo}")
+                    return
+                }
+            }
+
+            val entity = BillEntity(
+                title = parsed.title,
+                amount = parsed.amount,
+                category = parsed.category,
+                dueDateMillis = parsed.dueDateMillis,
+                isPaid = false,
+                referenceNo = parsed.referenceNo
+            )
+            dao.insertBill(entity)
+            Log.d("SmsReceiver", "Registered bill: ${parsed.title} - ${parsed.amount}")
+        } catch (e: Exception) {
+            Log.e("SmsReceiver", "Failed to register bill", e)
         }
     }
 
@@ -102,44 +137,16 @@ class SmsReceiver : BroadcastReceiver() {
             val percentage = (absSpent / limit * 100).toInt()
             val notificationHelper = com.example.spend_trend.ui.util.NotificationHelper(context)
             
+            val low = ThemePreferences.lowThreshold
+            val high = ThemePreferences.highThreshold
+            
             // Check if we just crossed thresholds
-            // This is a simple version; in a real app, you'd store notified thresholds to avoid duplicate alerts.
-            if (percentage >= 100) {
-                notificationHelper.showBudgetAlertNotification(category, 100)
-            } else if (percentage >= 80) {
-                notificationHelper.showBudgetAlertNotification(category, 80)
+            if (percentage >= high) {
+                notificationHelper.showBudgetAlertNotification(category, high)
+            } else if (percentage >= low) {
+                notificationHelper.showBudgetAlertNotification(category, low)
             }
         }
     }
 
-    private fun saveBill(context: Context, parsed: ParsedBill) {
-        scope.launch {
-            try {
-                val db = AppDatabase.getDatabase(context)
-                val dao = db.billDao()
-
-                // Deduplication check
-                if (parsed.referenceNo != null) {
-                    val existing = dao.getByReferenceNo(parsed.referenceNo)
-                    if (existing != null) {
-                        Log.d("SmsReceiver", "Duplicate bill detected: ${parsed.referenceNo}")
-                        return@launch
-                    }
-                }
-
-                val entity = BillEntity(
-                    title = parsed.title,
-                    amount = parsed.amount,
-                    category = parsed.category,
-                    dueDateMillis = parsed.dueDateMillis,
-                    isPaid = false,
-                    referenceNo = parsed.referenceNo
-                )
-                dao.insertBill(entity)
-                Log.d("SmsReceiver", "Registered bill: ${parsed.title} - ${parsed.amount}")
-            } catch (e: Exception) {
-                Log.e("SmsReceiver", "Failed to register bill", e)
-            }
-        }
-    }
 }

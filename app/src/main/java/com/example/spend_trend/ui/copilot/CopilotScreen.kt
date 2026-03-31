@@ -25,7 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.BudgetRepository
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.NeumorphicCard
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -43,13 +43,21 @@ fun CopilotScreen() {
     val messages = viewModel.messages
     val isTyping = viewModel.isTyping
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // ── Glass Header ──
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = Dimens.RadiusSm
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // ── Neumorphic Header ──
+        NeumorphicCard(
+            modifier = Modifier.fillMaxWidth().height(80.dp),
+            cornerRadius = 0.dp,
+            elevation = 4.dp
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingLg),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -90,12 +98,12 @@ fun CopilotScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            contentPadding = PaddingValues(Dimens.SpacingLg, Dimens.SpacingMd, Dimens.SpacingLg, Dimens.SpacingMd),
-            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+            contentPadding = PaddingValues(bottom = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
             reverseLayout = false
         ) {
             items(messages) { msg ->
-                GlassChatBubble(msg)
+                NeumorphicChatBubble(msg)
             }
 
             if (isTyping) {
@@ -103,33 +111,44 @@ fun CopilotScreen() {
             }
         }
 
-        // ── Glass Input Bar ──
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = Dimens.RadiusSm
+        // ── Neumorphic Input Bar ──
+        NeumorphicCard(
+            modifier = Modifier.fillMaxWidth().height(88.dp).padding(Dimens.SpacingSm),
+            cornerRadius = 44.dp,
+            elevation = 6.dp
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    placeholder = {
-                        Text(
-                            "Ask anything about your money...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingMd),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NeumorphicCard(
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    isConcave = true,
+                    backgroundColor = MaterialTheme.colorScheme.background,
+                    cornerRadius = 24.dp
+                ) {
+                    TextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        placeholder = {
+                            Text(
+                                "Ask about your money...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
                         )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = Dimens.SpacingSm),
-                    shape = RoundedCornerShape(Dimens.RadiusLg),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                        focusedBorderColor = Primary.copy(alpha = 0.5f),
-                        unfocusedBorderColor = Color.Transparent
                     )
-                )
+                }
+
+                Spacer(Modifier.width(Dimens.SpacingSm))
 
                 IconButton(
                     onClick = {
@@ -138,74 +157,54 @@ fun CopilotScreen() {
                             inputText = ""
                         }
                     },
-                    enabled = inputText.isNotBlank()
+                    enabled = inputText.isNotBlank(),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(if (inputText.isNotBlank()) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
                     Icon(
                         Icons.Default.Send,
-                        contentDescription = "Send message",
-                        tint = if (inputText.isNotBlank()) Primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        contentDescription = "Send",
+                        tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
         }
+        
+        Spacer(Modifier.height(Dimens.BottomNavClearance))
     }
-
-    // Bot reply logic is moved to CopilotViewModel
 }
 
 @Composable
-private fun GlassChatBubble(message: ChatMessage) {
+private fun NeumorphicChatBubble(message: ChatMessage) {
     val isUser = message.isUser
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.SpacingLg),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
-        val bgModifier = if (isUser) {
-            Modifier
-                .clip(
-                    RoundedCornerShape(
-                        topStart = Dimens.RadiusMd,
-                        topEnd = Dimens.RadiusMd,
-                        bottomEnd = Dimens.SpacingXs,
-                        bottomStart = Dimens.RadiusMd
-                    )
-                )
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(Primary.copy(alpha = 0.8f), Secondary.copy(alpha = 0.6f))
-                    )
-                )
-        } else {
-            Modifier
-                .clip(
-                    RoundedCornerShape(
-                        topStart = Dimens.RadiusMd,
-                        topEnd = Dimens.RadiusMd,
-                        bottomEnd = Dimens.RadiusMd,
-                        bottomStart = Dimens.SpacingXs
-                    )
-                )
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-        }
-
-        Column(
-            modifier = Modifier
-                .widthIn(max = 300.dp)
-                .then(bgModifier)
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+        NeumorphicCard(
+            modifier = Modifier.widthIn(max = 280.dp),
+            isConcave = false, // Flat surface for both — AI bubbles need readable text, not shadow-obscured text
+            elevation = if (isUser) 4.dp else 2.dp,
+            cornerRadius = 16.dp,
+            backgroundColor = if (isUser) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
         ) {
-            Text(
-                message.text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(Dimens.SpacingXs))
-            Text(
-                message.time,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isUser) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.align(Alignment.End)
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    message.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isUser) Primary else MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(Dimens.SpacingXs))
+                Text(
+                    message.time,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.align(Alignment.End)
+                )
+            }
         }
     }
 }
@@ -215,7 +214,7 @@ private fun PulsingTypingIndicator() {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
 
     Row(
-        modifier = Modifier.padding(start = Dimens.SpacingLg, top = Dimens.SpacingSm),
+        modifier = Modifier.padding(start = Dimens.SpacingXxl, top = Dimens.SpacingSm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingXs)
     ) {
@@ -229,6 +228,8 @@ private fun PulsingTypingIndicator() {
                 ),
                 label = "dot_$index"
             )
+
+            // Lightweight Box instead of NeumorphicCard — no GPU shadow recalculation per frame
             Box(
                 modifier = Modifier
                     .size(8.dp)
@@ -244,9 +245,3 @@ private fun PulsingTypingIndicator() {
         )
     }
 }
-
-data class ChatMessage(
-    val text: String,
-    val isUser: Boolean,
-    val time: String
-)

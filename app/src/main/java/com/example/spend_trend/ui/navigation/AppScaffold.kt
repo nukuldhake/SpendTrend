@@ -3,8 +3,11 @@ package com.example.spend_trend.ui.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -17,9 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,6 +32,8 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.BudgetRepository
+import com.example.spend_trend.ui.bills.BillsScreen
+import com.example.spend_trend.ui.bills.AddBillScreen
 import com.example.spend_trend.ui.budgets.AddBudgetScreen
 import com.example.spend_trend.ui.budgets.BudgetDetailScreen
 import com.example.spend_trend.ui.budgets.BudgetViewModel
@@ -45,6 +52,7 @@ import com.example.spend_trend.ui.analytics.AnalyticsScreen
 import com.example.spend_trend.ui.goals.GoalScreen
 import com.example.spend_trend.ui.theme.*
 import com.example.spend_trend.ui.auth.*
+import com.example.spend_trend.ui.components.NeumorphicCard
 import com.example.spend_trend.data.UserPreferences
 import kotlinx.coroutines.launch
 
@@ -55,6 +63,7 @@ fun AppScaffold() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -76,6 +85,7 @@ fun AppScaffold() {
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !isAuthScreen,
         drawerContent = {
             DrawerContent(
                 onNavigate = { route ->
@@ -96,6 +106,7 @@ fun AppScaffold() {
         }
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 if (!isAuthScreen) {
                     SpendTrendTopBar(
@@ -123,23 +134,17 @@ fun AppScaffold() {
             },
             floatingActionButton = {
                 val route = currentDestination?.route
-                if (route == Screen.Dashboard.route || route == Screen.Budgets.route) {
-                    FloatingActionButton(
+                if (route == Screen.Dashboard.route || route == Screen.Budgets.route || route == Screen.Bills.route) {
+                    NeumorphicFab(
+                        icon = Icons.Default.Add,
                         onClick = {
-                            if (route == Screen.Budgets.route) {
-                                navController.navigate(Screen.AddBudget.route)
-                            } else {
-                                navController.navigate(Screen.AddTransaction.route)
+                            when (route) {
+                                Screen.Budgets.route -> navController.navigate(Screen.AddBudget.route)
+                                Screen.Bills.route -> navController.navigate(Screen.AddBill.route)
+                                else -> navController.navigate(Screen.AddTransaction.route)
                             }
-                        },
-                        containerColor = colorScheme.primary,
-                        contentColor = colorScheme.onPrimary
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = if (route == Screen.Budgets.route) "Add new budget" else "Add new transaction"
-                        )
-                    }
+                        }
+                    )
                 }
             },
             floatingActionButtonPosition = FabPosition.End,
@@ -221,6 +226,16 @@ fun AppScaffold() {
                 composable(Screen.Copilot.route) { CopilotScreen() }
                 composable(Screen.Goals.route) { GoalScreen() }
                 composable(Screen.Analytics.route) { AnalyticsScreen() }
+                composable(Screen.Bills.route) { BillsScreen() }
+                composable(Screen.AddBill.route) { 
+                    val billViewModel: com.example.spend_trend.ui.bills.BillViewModel = viewModel(
+                        factory = com.example.spend_trend.ui.bills.BillViewModelFactory(
+                            billRepo = com.example.spend_trend.data.repository.BillRepository(AppDatabase.getDatabase(context).billDao()),
+                            txRepo = com.example.spend_trend.data.repository.TransactionRepository(AppDatabase.getDatabase(context).transactionDao())
+                        )
+                    )
+                    AddBillScreen(viewModel = billViewModel, onBack = { navController.popBackStack() }) 
+                }
                 composable(Screen.Profile.route) { ProfileScreen(onBack = { navController.popBackStack() }) }
                 composable(Screen.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }) }
                 composable(Screen.Help.route) { HelpScreen(onBack = { navController.popBackStack() }) }
@@ -258,118 +273,285 @@ fun AppScaffold() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SpendTrendTopBar(currentRoute: String?, onDrawerOpen: () -> Unit) {
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    NeumorphicCard(
+        modifier = Modifier.fillMaxWidth().height(80.dp),
+        cornerRadius = 0.dp,
+        elevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingLg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(
                     imageVector = screenIcon(currentRoute),
                     contentDescription = null,
-                    tint = colorScheme.primary,
+                    tint = Primary,
                     modifier = Modifier.size(Dimens.IconLg)
                 )
                 Text(
                     text = screenTitle(currentRoute),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = colorScheme.primary),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = 0.5.sp
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-        },
-        actions = {
-            ProfileAvatar(initials = "N", onClick = onDrawerOpen, modifier = Modifier.padding(end = Dimens.SpacingLg))
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = colorScheme.surface.copy(alpha = 0.85f))
-    )
+            
+            ProfileAvatar(name = UserPreferences.getName() ?: "G", onClick = onDrawerOpen)
+        }
+    }
 }
 
 @Composable
 private fun SpendTrendBottomBar(currentDestination: androidx.navigation.NavDestination?, onNavigate: (String) -> Unit) {
-    NavigationBar(containerColor = colorScheme.surface.copy(alpha = 0.90f), tonalElevation = Dimens.ElevationNone) {
-        listOf(
-            BottomNavItem.Dashboard,
-            BottomNavItem.Transactions,
-            BottomNavItem.Budgets,
-            BottomNavItem.Analytics,
-            BottomNavItem.Copilot
-        ).forEach { item ->
-            val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { onNavigate(item.route) },
-                icon = { Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, null) },
-                label = { Text(item.label) },
-                alwaysShowLabel = false,
-                colors = NavigationBarItemDefaults.colors(selectedIconColor = colorScheme.onPrimary, indicatorColor = colorScheme.primary)
-            )
+    NeumorphicCard(
+        modifier = Modifier.fillMaxWidth().height(84.dp),
+        cornerRadius = 0.dp,
+        elevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            listOf(
+                BottomNavItem.Dashboard,
+                BottomNavItem.Transactions,
+                BottomNavItem.Budgets,
+                BottomNavItem.Analytics,
+                BottomNavItem.Copilot
+            ).forEach { item ->
+                val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+                
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onNavigate(item.route) }
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    NeumorphicCard(
+                        modifier = Modifier.size(48.dp),
+                        cornerRadius = 14.dp,
+                        elevation = if (isSelected) 0.dp else 2.dp,
+                        isConcave = isSelected,
+                        backgroundColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.label,
+                                tint = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun DrawerContent(onNavigate: (String) -> Unit, onLogout: () -> Unit) {
-    ModalDrawerSheet(drawerContainerColor = colorScheme.background) {
+    ModalDrawerSheet(
+        drawerContainerColor = MaterialTheme.colorScheme.background,
+        drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
+    ) {
         DrawerHeader()
-        HorizontalDivider(thickness = 1.dp)
+        
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Dimens.SpacingLg)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+        ) {
+            DrawerSectionHeader("Financials")
+            DrawerItem(Icons.Default.Stars, "Goals", "Savings targets") { onNavigate(Screen.Goals.route) }
+            DrawerItem(Icons.Default.Receipt, "Bills", "Upcoming payments") { onNavigate(Screen.Bills.route) }
+            DrawerItem(Icons.AutoMirrored.Filled.TrendingUp, "Forecast", "Future trends") { onNavigate(Screen.Forecast.route) }
+            
+            Spacer(Modifier.height(Dimens.SpacingMd))
+            DrawerSectionHeader("System")
+            DrawerItem(Icons.Default.Person, "Profile", "User profile") { onNavigate(Screen.Profile.route) }
+            DrawerItem(Icons.Default.Settings, "Settings", "Preferences") { onNavigate(Screen.Settings.route) }
+            DrawerItem(Icons.AutoMirrored.Filled.Help, "Help", "FAQ") { onNavigate(Screen.Help.route) }
+            DrawerItem(Icons.Default.Email, "Contact Us", "Support") { onNavigate(Screen.Contact.route) }
 
-        DrawerItem(Icons.Default.Stars, "Goals", "Savings targets") { onNavigate(Screen.Goals.route) }
-        DrawerItem(Icons.AutoMirrored.Filled.TrendingUp, "Forecast", "Future trends") { onNavigate(Screen.Forecast.route) }
-        HorizontalDivider(thickness = 1.dp)
+            Spacer(Modifier.height(Dimens.SpacingMd))
+            DrawerSectionHeader("Appearance")
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)) {
+                ThemeOption("Light", ThemeMode.LIGHT, Modifier.weight(1f))
+                ThemeOption("Dark", ThemeMode.DARK, Modifier.weight(1f))
+            }
+            ThemeOption("System", ThemeMode.SYSTEM, Modifier.fillMaxWidth())
 
-        DrawerItem(Icons.Default.Person, "Profile", "User profile") { onNavigate(Screen.Profile.route) }
-        DrawerItem(Icons.Default.Settings, "Settings", "Preferences") { onNavigate(Screen.Settings.route) }
-        DrawerItem(Icons.AutoMirrored.Filled.Help, "Help", "FAQ") { onNavigate(Screen.Help.route) }
-        DrawerItem(Icons.Default.Email, "Contact Us", "Support") { onNavigate(Screen.Contact.route) }
-
-        HorizontalDivider(thickness = 1.dp)
-        Text("Theme", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 28.dp, vertical = Dimens.SpacingSm))
-        ThemeOption("Light", ThemeMode.LIGHT)
-        ThemeOption("Dark", ThemeMode.DARK)
-        ThemeOption("System", ThemeMode.SYSTEM)
-
-        Spacer(Modifier.weight(1f))
-        DrawerItem(Icons.AutoMirrored.Filled.Logout, "Log Out", "Exit", colorScheme.error, onLogout)
+            Spacer(Modifier.weight(1f))
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth().height(56.dp).clickable { onLogout() },
+                cornerRadius = 16.dp,
+                elevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, null, tint = ExpenseRose)
+                    Spacer(Modifier.width(Dimens.SpacingSm))
+                    Text("Log Out", color = ExpenseRose, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun ProfileAvatar(initials: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.size(40.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Primary, Secondary))).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+private fun DrawerSectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier.padding(start = Dimens.SpacingSm, bottom = Dimens.SpacingXs)
+    )
+}
+
+@Composable
+private fun ProfileAvatar(name: String, onClick: () -> Unit) {
+    val initials = name.take(1).uppercase().ifEmpty { "?" }
+    NeumorphicCard(
+        modifier = Modifier.size(44.dp).clickable(onClick = onClick),
+        cornerRadius = 22.dp,
+        elevation = 6.dp
     ) {
-        Text(text = initials.uppercase(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = initials,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = Primary
+            )
+        }
     }
 }
 
 @Composable
 private fun DrawerHeader() {
-    Column(modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingXxl), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Primary, Secondary))), contentAlignment = Alignment.Center) {
-            Text("N", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color.White)
+    val name = UserPreferences.getName() ?: "Guest"
+    val initials = name.take(1).uppercase().ifEmpty { "G" }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Dimens.SpacingXxl),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        NeumorphicCard(
+            modifier = Modifier.size(100.dp),
+            cornerRadius = 50.dp,
+            elevation = 12.dp
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    initials,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = Primary
+                )
+            }
         }
         Spacer(Modifier.height(Dimens.SpacingLg))
-        Text(ThemePreferences.userName, style = MaterialTheme.typography.titleLarge)
-        Text(UserPreferences.getEmail() ?: "Welcome to SpendTrend", style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurfaceVariant)
+        Text(
+            name,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            UserPreferences.getEmail() ?: "Welcome to SpendTrend",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
-private fun DrawerItem(icon: ImageVector, label: String, contentDesc: String, color: Color = colorScheme.onSurface, onClick: () -> Unit) {
-    NavigationDrawerItem(icon = { Icon(icon, contentDesc, tint = color) }, label = { Text(label, color = color) }, selected = false, onClick = onClick, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
+private fun DrawerItem(icon: ImageVector, label: String, contentDesc: String, onClick: () -> Unit) {
+    NeumorphicCard(
+        modifier = Modifier.fillMaxWidth().height(52.dp).clickable { onClick() },
+        cornerRadius = 14.dp,
+        elevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingMd),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDesc, tint = Primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(Dimens.SpacingMd))
+            Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        }
+    }
 }
 
 @Composable
-private fun ThemeOption(label: String, mode: ThemeMode) {
-    NavigationDrawerItem(
-        label = { Text(label) },
-        selected = ThemePreferences.themeMode == mode,
-        onClick = { ThemePreferences.updateTheme(mode) },
-        icon = { Icon(when(mode) { ThemeMode.LIGHT -> Icons.Default.LightMode; ThemeMode.DARK -> Icons.Default.DarkMode; else -> Icons.Default.BrightnessAuto }, null) },
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    )
+private fun ThemeOption(label: String, mode: ThemeMode, modifier: Modifier = Modifier) {
+    val isSelected = ThemePreferences.themeMode == mode
+    NeumorphicCard(
+        modifier = modifier.height(44.dp).clickable { ThemePreferences.updateTheme(mode) },
+        cornerRadius = 10.dp,
+        elevation = if (isSelected) 0.dp else 2.dp,
+        isConcave = isSelected,
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+@Composable
+private fun NeumorphicFab(icon: ImageVector, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    NeumorphicCard(
+        modifier = Modifier
+            .size(64.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        cornerRadius = 32.dp,
+        elevation = if (isPressed) 0.dp else 12.dp,
+        isConcave = isPressed,
+        backgroundColor = Primary // Vibrant accent for FAB
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Icon(
+                icon,
+                null,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+    }
 }
 
 private fun screenTitle(route: String?): String = when (route) {

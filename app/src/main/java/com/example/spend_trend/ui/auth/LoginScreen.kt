@@ -27,6 +27,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.theme.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Check
@@ -49,21 +52,8 @@ fun LoginScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Gradient background ornament
-        Box(
-            modifier = Modifier
-                .size(400.dp)
-                .offset(x = (-100).dp, y = (-100).dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
+        // Subtle background ornament replaced with soft shadow logic if needed, 
+        // but keeping it simple as SoftZinc is the hero.
 
         Column(
             modifier = Modifier
@@ -90,13 +80,38 @@ fun LoginScreen(
             Spacer(Modifier.height(48.dp))
 
             if (!isRegistered) {
-                // Not registered yet - Invite to Register
-                Button(
-                    onClick = onNavigateToRegister,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("Get Started", fontWeight = FontWeight.Bold)
+                // Not registered locally - Allow Email Login or Register
+                Column {
+                    NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                        TextField(
+                            value = viewModel.email,
+                            onValueChange = { viewModel.email = it },
+                            label = { Text("Email Address") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    
+                    PasswordLoginContent(
+                        viewModel = viewModel,
+                        onLoginSuccess = onLoginSuccess,
+                        onSwitchToPin = null,
+                        passwordVisible = passwordVisible,
+                        onToggleVisibility = { passwordVisible = !passwordVisible }
+                    )
+                    
+                    Spacer(Modifier.height(24.dp))
+                    
+                    TextButton(onClick = onNavigateToRegister, modifier = Modifier.fillMaxWidth()) {
+                        Text("New here? Create an account")
+                    }
                 }
             } else {
                 // Registered - Fixed Email Display
@@ -155,32 +170,46 @@ fun PasswordLoginContent(
     onToggleVisibility: () -> Unit
 ) {
     Column {
-        OutlinedTextField(
-            value = viewModel.password,
-            onValueChange = { viewModel.password = it },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                IconButton(onClick = onToggleVisibility) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = "Toggle password"
-                    )
+        NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+            TextField(
+                value = viewModel.password,
+                onValueChange = { viewModel.password = it },
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    IconButton(onClick = onToggleVisibility) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Toggle password"
+                        )
+                    }
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        NeumorphicCard(
+            modifier = Modifier.fillMaxWidth().height(56.dp).clickable(enabled = !viewModel.isLoading) { viewModel.loginWithPassword(onLoginSuccess) },
+            cornerRadius = 16.dp,
+            elevation = if (viewModel.isLoading) 0.dp else 6.dp,
+            isConcave = viewModel.isLoading
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Login", fontWeight = FontWeight.Bold, color = Primary)
                 }
             }
-        )
-
-        Spacer(Modifier.height(24.dp))
-
-        Button(
-            onClick = { if (viewModel.loginWithPassword()) onLoginSuccess() },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("Login", fontWeight = FontWeight.Bold)
         }
 
         if (onSwitchToPin != null) {
@@ -211,45 +240,27 @@ fun PinLoginContent(
         ) {
             repeat(4) { index ->
                 val isActive = viewModel.pin.length > index
-                val size by androidx.compose.animation.core.animateDpAsState(
-                    targetValue = if (isActive) 20.dp else 16.dp,
-                    label = "dotSize"
-                )
-                val color by animateColorAsState(
-                    targetValue = if (isActive) MaterialTheme.colorScheme.primary 
-                                 else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f),
-                    label = "dotColor"
-                )
                 
-                Box(
-                    modifier = Modifier
-                        .size(size)
-                        .clip(CircleShape)
-                        .background(color)
-                        .border(
-                            width = 1.dp,
-                            color = if (isActive) Color.Transparent else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = CircleShape
-                        )
-                )
+                NeumorphicCard(
+                    modifier = Modifier.size(20.dp),
+                    cornerRadius = 10.dp,
+                    elevation = if (isActive) 0.dp else 4.dp,
+                    isConcave = isActive,
+                    backgroundColor = if (isActive) Primary else MaterialTheme.colorScheme.background
+                ) {
+                    // Empty content, card does the work
+                }
             }
         }
 
         Spacer(Modifier.height(32.dp))
 
-        // Glassmorphic Keypad Container
-        Surface(
-            modifier = Modifier
-                .padding(8.dp)
-                .clip(RoundedCornerShape(32.dp)),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            tonalElevation = 8.dp
+        // Neumorphic Keypad Container
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "OK")
+                val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK")
                 
                 for (row in 0..3) {
                     Row(
@@ -260,75 +271,30 @@ fun PinLoginContent(
                             val key = keys[row * 3 + col]
                             KeypadButton(key) {
                                 when (key) {
-                                    "C" -> { if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1) }
+                                    "⌫" -> { if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1) }
                                     "OK" -> { if (viewModel.loginWithPin()) onLoginSuccess() }
                                     else -> { if (viewModel.pin.length < 4) viewModel.pin += key }
                                 }
-                                if (viewModel.pin.length == 4 && key != "C" && key != "OK") {
-                                    if (viewModel.loginWithPin()) onLoginSuccess()
-                                }
+                                // Auto-login removed: user must press OK explicitly
                             }
                         }
                     }
-                }
             }
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(48.dp))
 
         // Prominent Password Option
-        OutlinedButton(
-            onClick = onSwitchToPassword,
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(48.dp),
-            shape = RoundedCornerShape(24.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+        NeumorphicCard(
+            modifier = Modifier.fillMaxWidth(0.8f).height(48.dp).clickable { onSwitchToPassword() },
+            cornerRadius = 24.dp,
+            elevation = 4.dp
         ) {
-            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Login with Password", style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
-
-@Composable
-fun KeypadButton(text: String, onClick: () -> Unit) {
-    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by androidx.compose.animation.core.animateFloatAsState(if (isPressed) 0.9f else 1f, label = "scale")
-
-    Box(
-        modifier = Modifier
-            .size(72.dp)
-            .padding(4.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Lock, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Login with Password", style = MaterialTheme.typography.labelLarge, color = Primary)
             }
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .background(
-                if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (text == "C") {
-            Icon(Icons.Default.Backspace, contentDescription = "Clear", modifier = Modifier.size(24.dp))
-        } else if (text == "OK") {
-            Icon(Icons.Default.Check, contentDescription = "OK", modifier = Modifier.size(24.dp))
-        } else {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
     }
 }

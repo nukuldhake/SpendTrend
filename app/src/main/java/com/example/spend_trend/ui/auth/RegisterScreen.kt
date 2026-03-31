@@ -1,6 +1,7 @@
 package com.example.spend_trend.ui.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,6 +23,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.theme.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +46,9 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp)
-                .systemBarsPadding(),
+                .systemBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -60,71 +67,104 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(48.dp))
             
-            OutlinedTextField(
-                value = viewModel.name,
-                onValueChange = { viewModel.name = it },
-                label = { Text("Full Name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
-            )
+            NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                TextField(
+                    value = viewModel.name,
+                    onValueChange = { viewModel.name = it },
+                    label = { Text("Full Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
             
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = viewModel.email,
-                onValueChange = { viewModel.email = it },
-                label = { Text("Email Address") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
-            )
+            NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                TextField(
+                    value = viewModel.email,
+                    onValueChange = { viewModel.email = it },
+                    label = { Text("Email Address") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = viewModel.password,
-                onValueChange = { viewModel.password = it },
-                label = { Text("Password") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = null
-                        )
-                    }
-                }
-            )
+            NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                TextField(
+                    value = viewModel.password,
+                    onValueChange = { viewModel.password = it },
+                    label = { Text("Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = viewModel.confirmPassword,
-                onValueChange = { viewModel.confirmPassword = it },
-                label = { Text("Confirm Password") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
-            )
+            NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                TextField(
+                    value = viewModel.confirmPassword,
+                    onValueChange = { viewModel.confirmPassword = it },
+                    label = { Text("Confirm Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
 
             Spacer(Modifier.height(32.dp))
 
-            Button(
-                onClick = { 
-                    if (viewModel.register()) onRegisterSuccess()
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth().height(56.dp).clickable(enabled = !viewModel.isLoading) { viewModel.register(onRegisterSuccess) },
+                cornerRadius = 16.dp,
+                elevation = if (viewModel.isLoading) 0.dp else 6.dp,
+                isConcave = viewModel.isLoading
             ) {
-                Text("Register", fontWeight = FontWeight.Bold)
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (viewModel.isLoading) {
+                        CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Register", fontWeight = FontWeight.Bold, color = Primary)
+                    }
+                }
             }
 
             Spacer(Modifier.height(16.dp))

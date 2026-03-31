@@ -25,7 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.NeumorphicChip
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -78,6 +79,7 @@ fun TransactionHistoryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.SpacingLg)
             .padding(vertical = Dimens.SpacingLg)
     ) {
@@ -86,9 +88,9 @@ fun TransactionHistoryScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)
         ) {
-            GlassSummaryChip("Income", income, IncomeGreen, Modifier.weight(1f))
-            GlassSummaryChip("Expense", expense, ExpenseRose, Modifier.weight(1f))
-            GlassSummaryChip("Net", net, if (net >= 0) IncomeGreen else ExpenseRose, Modifier.weight(1f))
+            NeumorphicSummaryChip("Income", income, IncomeGreen, Modifier.weight(1f))
+            NeumorphicSummaryChip("Expense", expense, ExpenseRose, Modifier.weight(1f))
+            NeumorphicSummaryChip("Net", net, if (net >= 0) IncomeGreen else ExpenseRose, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(Dimens.SpacingLg))
@@ -99,16 +101,12 @@ fun TransactionHistoryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)) {
                 TransactionFilter.values().forEach { filter ->
-                    FilterChip(
-                        selected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter },
-                        label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary.copy(alpha = 0.2f),
-                            selectedLabelColor = Primary
-                        )
+                    NeumorphicChip(
+                        text = filter.name.lowercase().replaceFirstChar { it.uppercase() },
+                        isSelected = selectedFilter == filter,
+                        onClick = { selectedFilter = filter }
                     )
                 }
             }
@@ -126,7 +124,7 @@ fun TransactionHistoryScreen(
         Spacer(Modifier.height(Dimens.SpacingMd))
 
         if (filtered.isEmpty()) {
-            GlassEmptyState()
+            NeumorphicEmptyState()
         } else {
             val groupedTransactions = remember(filtered) {
                 filtered.groupBy { it.dateLabel() }
@@ -218,11 +216,11 @@ fun TransactionHistoryScreen(
 }
 
 @Composable
-fun GlassSummaryChip(label: String, amount: Int, color: Color, modifier: Modifier = Modifier) {
-    GlassCard(modifier = modifier, cornerRadius = Dimens.RadiusSm) {
+fun NeumorphicSummaryChip(label: String, amount: Int, color: Color, modifier: Modifier = Modifier) {
+    NeumorphicCard(modifier = modifier, cornerRadius = Dimens.RadiusSm, elevation = 4.dp) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(Dimens.SpacingSm)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
@@ -288,19 +286,25 @@ fun SwipeableTransactionRow(
             }
         }
     ) {
-        GlassTransactionItem(transaction)
+        NeumorphicTransactionItem(transaction)
     }
 }
 
 @Composable
-fun GlassTransactionItem(tx: TransactionUi) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = Dimens.RadiusSm) {
+fun NeumorphicTransactionItem(tx: TransactionUi) {
+    NeumorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = Dimens.RadiusSm,
+        elevation = 4.dp
+    ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(Dimens.SpacingMd)
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(Primary.copy(alpha = 0.12f)),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(categoryIcon(tx.category), null, tint = Primary, modifier = Modifier.size(Dimens.IconMd))
@@ -327,21 +331,21 @@ private fun valStr(amount: Int): String {
 }
 
 @Composable
-fun GlassEmptyState() {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+fun NeumorphicEmptyState() {
+    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingHuge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                Icons.AutoMirrored.Outlined.ReceiptLong, 
-                null, 
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), 
+                Icons.AutoMirrored.Outlined.ReceiptLong,
+                null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                 modifier = Modifier.size(Dimens.IconHero)
             )
             Spacer(Modifier.height(Dimens.SpacingLg))
             Text("No transactions yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Your financial activity will appear here", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+            Text("Your financial activity will appear here", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), textAlign = TextAlign.Center)
         }
     }
 }

@@ -27,6 +27,15 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE referenceNo = :refNo LIMIT 1")
     suspend fun getByReferenceNo(refNo: String): TransactionEntity?
 
+    @Query("""
+        SELECT * FROM transactions 
+        WHERE amount = :amount 
+          AND dateMillis >= :startMillis 
+          AND dateMillis <= :endMillis 
+        LIMIT 1
+    """)
+    suspend fun findSimilar(amount: Int, startMillis: Long, endMillis: Long): TransactionEntity?
+
     // Optional: monthly totals example (for Dashboard later)
     @Query("""
         SELECT SUM(amount) 

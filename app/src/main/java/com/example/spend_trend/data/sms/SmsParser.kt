@@ -1,5 +1,6 @@
 package com.example.spend_trend.data.sms
 
+import android.util.Log
 import java.util.regex.Pattern
 
 data class ParsedTransaction(
@@ -55,31 +56,39 @@ object SmsParser {
     )
 
     private val DUE_DATE_PATTERNS = listOf(
-        // "due on 15 Oct 2026", "due on 15-10-2026"
+        // "due on 15 Oct 2026", "due on 15-10-2026", "due on 15/10/2026"
         Pattern.compile("(?i)due\\s+(?:on|by|date)?[:\\s]*(\\d{1,2}[\\s\\-/\\.](?:[a-z]{3,9}|\\d{1,2})[\\s\\-/\\.]\\d{2,4})"),
-        // "last date 15/10" (assumes current year)
-        Pattern.compile("(?i)last\\s+date[:\\s]*(\\d{1,2}[\\s\\-/\\.]\\d{1,2})")
+        // "due on Oct 15, 2026" (month first)
+        Pattern.compile("(?i)due\\s+(?:on|by|date)?[:\\s]*([a-z]{3,9})\\s+(\\d{1,2})[,\\s]+(\\d{2,4})"),
+        // "last date 15/10"
+        Pattern.compile("(?i)last\\s+date[:\\s]*(\\d{1,2}[\\s\\-/\\.]\\d{1,2})"),
+        // "payment due date is Oct 15, 2026"
+        Pattern.compile("(?i)due\\s+date\\s+is\\s+([a-z]{3,9}\\s+\\d{1,2}[,\\s]+\\d{2,4})")
     )
 
-    private val BILL_KEYWORDS = listOf("bill", "recharge", "postpaid", "electricity", "rent", "installment", "emi")
-
-    private val INCOME_KEYWORDS = listOf("credited", "received", "deposited", "refund", "added to", "cashback", "salary")
-    private val EXPENSE_KEYWORDS = listOf("spent", "paid", "debited", "withdrawal", "sent to", "towards", "txn", "purchase")
+    private val LOSS_KEYWORDS = listOf("spent", "paid", "debited", "withdrawal", "sent to", "towards", "txn", "purchase", "dr")
+    private val GAIN_KEYWORDS = listOf("credited", "received", "deposited", "refund", "added to", "cashback", "salary", "cr")
+    private val BALANCE_KEYWORDS = listOf("available balance", "bal", "available limit", "outstanding", "bal in a/c")
+    private val EXCLUSION_KEYWORDS = listOf("otp", "verification", "code", "cvv", "secret", "is due", "bill amount", "due on")
 
     // ──────────────── CORE PARSING LOGIC ────────────────
 
     fun parse(message: String): ParsedTransaction? {
         val lowMsg = message.lowercase()
         
-        // 1. Initial filter - must look like a transaction
+        // 1. Initial filter - must look like a transaction and NOT be an exclusion
         if (!isTransactionMessage(lowMsg)) return null
+        if (EXCLUSION_KEYWORDS.any { lowMsg.contains(it) }) return null
 
-        // 2. Extract Amount
-        val amount = findAmount(message) ?: return null
-        if (amount <= 0) return null
+        // 2. Extract Amount and its position
+        val amountResult = findAmountWithPosition(message) ?: return null
+        val amountValue = amountResult.first
+        val amountPos = amountResult.second
+        
+        if (amountValue <= 0) return null
 
-        // 3. Determine if it's an Expense or Income
-        val isExpense = determineIfExpense(lowMsg)
+        // 3. Determine if it's an Expense or Income based on proximity
+        val isExpense = determineIfExpense(lowMsg, amountPos)
 
         // 4. Extract Merchant Name
         var merchant = findMerchant(message) ?: "Digital Transaction"
@@ -94,7 +103,7 @@ object SmsParser {
         val refNo = findReference(message)
 
         return ParsedTransaction(
-            amount = amount.toInt(),
+            amount = amountValue.toInt(),
             merchant = merchant,
             category = category,
             isExpense = isExpense,
@@ -106,8 +115,9 @@ object SmsParser {
     fun parseBill(message: String): ParsedBill? {
         val lowMsg = message.lowercase()
         
-        // 1. Check if it's a bill reminder
-        if (!BILL_KEYWORDS.any { lowMsg.contains(it) } || !lowMsg.contains("due")) return null
+        // 1. Check if it's a bill reminder (more flexible indicators)
+        val indicators = listOf("bill", "recharge", "postpaid", "electricity", "rent", "installment", "emi", "due on", "bill amount")
+        if (!indicators.any { lowMsg.contains(it) } || !lowMsg.contains("due")) return null
 
         // 2. Extract Amount
         val amount = findAmount(message) ?: return null
@@ -134,77 +144,137 @@ object SmsParser {
         for (pattern in DUE_DATE_PATTERNS) {
             val matcher = pattern.matcher(message)
             if (matcher.find()) {
-                // For simplicity, we'll try to parse common formats or return current + 1 week
-                // A real implementation would use a robust date parser
-                return System.currentTimeMillis() + (86400000L * 7) // Placeholder: 1 week from now
+                val groupCount = matcher.groupCount()
+                try {
+                    val date: java.time.LocalDate = if (groupCount >= 3) {
+                        // Handle "Month Day, Year"
+                        val month = matcher.group(1) ?: ""
+                        val day = matcher.group(2) ?: ""
+                        val year = matcher.group(3) ?: ""
+                        
+                        val monthVal = parseMonth(month)
+                        val dayVal = day.toInt()
+                        val yearVal = if (year.length == 2) 2000 + year.toInt() else year.toInt()
+                        
+                        java.time.LocalDate.of(yearVal, monthVal, dayVal)
+                    } else {
+                        // Handle "Day Month Year" or other single-string formats
+                        val dateStr = matcher.group(1) ?: continue
+                        val cleanDate = dateStr.replace(Regex("[\\s/\\.]"), "-")
+                        val formats = listOf(
+                            "dd-MM-yyyy", "d-MM-yyyy", "dd-MMM-yyyy", "d-MMM-yyyy",
+                            "dd-MM-yy", "d-MM-yy", "MMM-dd-yyyy", "dd-MM"
+                        )
+                        
+                        var result: java.time.LocalDate? = null
+                        for (fmt in formats) {
+                            try {
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern(fmt, java.util.Locale.ENGLISH)
+                                result = if (fmt.contains("yyyy") || fmt.contains("yy")) {
+                                    java.time.LocalDate.parse(cleanDate, formatter)
+                                } else {
+                                    val partial = java.time.format.DateTimeFormatter.ofPattern(fmt).parse(cleanDate)
+                                    java.time.LocalDate.now().withMonth(partial.get(java.time.temporal.ChronoField.MONTH_OF_YEAR))
+                                        .withDayOfMonth(partial.get(java.time.temporal.ChronoField.DAY_OF_MONTH))
+                                }
+                                break
+                            } catch (e: Exception) { continue }
+                        }
+                        result ?: continue
+                    }
+                    return date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                } catch (e: Exception) {
+                    Log.e("SmsParser", "Date parse error in ${matcher.group(0)}", e)
+                }
             }
         }
-        return null
+        return null // If no date found, return null and let caller decide
+    }
+
+    private fun parseMonth(m: String): Int {
+        val low = m.lowercase()
+        return when {
+            low.startsWith("jan") -> 1
+            low.startsWith("feb") -> 2
+            low.startsWith("mar") -> 3
+            low.startsWith("apr") -> 4
+            low.startsWith("may") -> 5
+            low.startsWith("jun") -> 6
+            low.startsWith("jul") -> 7
+            low.startsWith("aug") -> 8
+            low.startsWith("sep") -> 9
+            low.startsWith("oct") -> 10
+            low.startsWith("nov") -> 11
+            low.startsWith("dec") -> 12
+            else -> 1
+        }
     }
 
     private fun isTransactionMessage(msg: String): Boolean {
-        // High confidence keywords that signify a banking/payment SMS
-        val indicators = listOf("rs", "inr", "₹", "spent", "paid", "debited", "credited", "bank", "a/c", "acct", "transaction", "upi", "vpa")
-        return indicators.any { msg.contains(it) }
-    }
-
-    private fun determineIfExpense(msg: String): Boolean {
-        // Special case: "Credited for refund" is income, but "Debited for Bill" is expense
-        if (msg.contains("credited") || msg.contains("received") || msg.contains("deposited") || msg.contains("refund")) {
-            // Check if there's a strong reversal like "debited for refund" (rare)
-            return false
-        }
-        if (msg.contains("debited") || msg.contains("spent") || msg.contains("paid") || msg.contains("withdrawal")) return true
+        // High confidence indicators that signify a banking/payment SMS
+        val indicators = listOf("rs", "inr", "₹", "upi", "vpa", "txn", "spent", "paid", "debited", "credited")
         
-        // Count keyword weights
-        val incomeWeight = INCOME_KEYWORDS.count { msg.contains(it) }
-        val expenseWeight = EXPENSE_KEYWORDS.count { msg.contains(it) }
-        return expenseWeight >= incomeWeight
-    }
+        // 1. Must have at least one currency indicator
+        if (!indicators.any { msg.contains(it) }) return false
+        
+        // 2. Must have an action verb - this excludes balance-only or random info messages
+        val hasAction = (GAIN_KEYWORDS + LOSS_KEYWORDS).any { msg.contains(it) }
+        if (!hasAction) return false
 
-    private fun categorize(merchant: String, msg: String): String {
-        val m = merchant.lowercase()
-        return when {
-            // Food & Dining
-            containsAny(m, msg, "zomato", "swiggy", "starbucks", "dominos", "kfc", "dine", "restaurant", "food", "eat", "cafe", "bakery", "pizza", "burger", "mcdonalds") -> "Food"
+        // 3. Stricter balance alert exclusion
+        // If "balance" or "bal" appears, and "debited"/"credited" doesn't appear earlier, it might be an alert
+        val hasBalance = BALANCE_KEYWORDS.any { msg.contains(it) }
+        if (hasBalance) {
+            // Check if "debited" or "credited" is the primary subject (usually at the start)
+            val firstAction = (GAIN_KEYWORDS + LOSS_KEYWORDS).map { msg.indexOf(it) }.filter { it != -1 }.minOrNull() ?: Int.MAX_VALUE
+            val firstBalance = BALANCE_KEYWORDS.map { msg.indexOf(it) }.filter { it != -1 }.minOrNull() ?: Int.MAX_VALUE
             
-            // Transport & Fuel
-            containsAny(m, msg, "uber", "ola", "rapido", "petrol", "fuel", "hpcl", "bpcl", "iocl", "shell", "travel", "metro", "bus", "train", "railway", "irctc", "redbus", "indigo", "air", "bridge") -> "Transport"
-            
-            // Shopping & Grocery
-            containsAny(m, msg, "amazon", "flipkart", "myntra", "ajio", "reliance", "mart", "blinkit", "zepto", "bigbasket", "instamart", "shopping", "store", "supermarket", "grocery", "mall", "dmart", "fossil", "tata") -> "Shopping"
-            
-            // Entertainment
-            containsAny(m, msg, "netflix", "hotstar", "cinema", "pvr", "bookmyshow", "spotify", "google play", "apple", "itunes", "gaming", "steam", "sony", "prime") -> "Entertainment"
-            
-            // Bills & Utilities
-            containsAny(m, msg, "airtel", "jio", "vi", "mobile", "recharge", "electricity", "rent", "maintenance", "gas", "bsnl", "broadband", "wifi", "water", "act", "tata sky", "dth") -> "Bills"
-            
-            // Health & Wellness
-            containsAny(m, msg, "hospital", "pharmacy", "medicine", "apollo", "doc", "health", "gym", "cult", "yoga", "clinic", "pathology", "1mg") -> "Health"
-            
-            // Education
-            containsAny(m, msg, "school", "college", "university", "udemy", "coursera", "fees", "course", "education") -> "Education"
-            
-            // Income / Salary
-            containsAny(m, msg, "salary", "bonus", "dividend", "interest", "stipend") -> "Salary"
-
-            // Default
-            else -> "Other"
+            // If balance keyword is the very first thing (or before any action), skip it
+            if (firstBalance < firstAction && firstAction > 20) return false
         }
+        
+        return true
     }
 
-    private fun findAmount(message: String): Double? {
+    private fun determineIfExpense(msg: String, amountPos: Int): Boolean {
+        // Prioritize the keyword closest to the amount
+        val expenseDist = LOSS_KEYWORDS
+            .map { msg.indexOf(it) }
+            .filter { it != -1 }
+            .map { Math.abs(it - amountPos) }
+            .minOrNull() ?: Int.MAX_VALUE
+
+        val incomeDist = GAIN_KEYWORDS
+            .map { msg.indexOf(it) }
+            .filter { it != -1 }
+            .map { Math.abs(it - amountPos) }
+            .minOrNull() ?: Int.MAX_VALUE
+
+        if (expenseDist < incomeDist) return true
+        if (incomeDist < expenseDist) return false
+
+        // Fallback to weight-based or first keyword
+        val firstExpense = LOSS_KEYWORDS.map { msg.indexOf(it) }.filter { it != -1 }.minOrNull() ?: Int.MAX_VALUE
+        val firstIncome = GAIN_KEYWORDS.map { msg.indexOf(it) }.filter { it != -1 }.minOrNull() ?: Int.MAX_VALUE
+        return firstExpense < firstIncome
+    }
+
+    private fun findAmountWithPosition(message: String): Pair<Double, Int>? {
         for (pattern in AMOUNT_PATTERNS) {
             val matcher = pattern.matcher(message)
             if (matcher.find()) {
                 val cleaned = matcher.group(1)?.replace(",", "")
                 val value = cleaned?.toDoubleOrNull()
-                // Sanity check: transactions usually aren't less than 1 Re or more than 10 Lakhs in SMS
-                if (value != null && value >= 1.0 && value < 1000000.0) return value
+                if (value != null && value >= 1.0 && value < 1000000.0) {
+                    return Pair(value, matcher.start())
+                }
             }
         }
         return null
+    }
+
+    private fun findAmount(message: String): Double? {
+        return findAmountWithPosition(message)?.first
     }
 
     private fun findMerchant(message: String): String? {
@@ -243,13 +313,59 @@ object SmsParser {
     }
 
     private fun cleanupMerchant(m: String): String {
-        var clean = m.replace(Regex("[.;*:\\-]"), " ").trim()
-        clean = clean.split(" ")[0].take(20) // Take first word if it's too long, or limit to 20 chars
-        if (m.contains("@")) { // Probably a VPA/UPI ID
-             clean = m.split("@")[0]
+        // Remove VPA IDs (@upi, @okaxis, etc)
+        var clean = if (m.contains("@")) m.split("@")[0] else m
+        
+        // Remove common prefixes
+        clean = clean.replace(Regex("(?i)^(vpa|to|from|at|paid to|sent to|transfer to|spent on)\\s+"), "")
+        
+        // Remove punctuation and special chars often found in bank SMS
+        clean = clean.replace(Regex("[.;*:\\-_]"), " ").trim()
+        
+        // If it's a long number-heavy string (like a transaction ID), truncate it
+        if (clean.count { it.isDigit() } > clean.count { it.isLetter() }) {
+            clean = clean.take(12)
         }
+        
+        // Limit length but keep it readable
+        clean = clean.take(25)
+        
         // Capitalize words
-        return clean.split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+        return clean.split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { it.lowercase().replaceFirstChar { char -> char.uppercase() } }
+    }
+
+    private fun categorize(merchant: String, msg: String): String {
+        val m = merchant.lowercase()
+        return when {
+            // Food & Dining
+            containsAny(m, msg, "zomato", "swiggy", "starbucks", "dominos", "kfc", "dine", "restaurant", "food", "eat", "cafe", "bakery", "pizza", "burger", "mcdonalds") -> "Food"
+            
+            // Transport & Fuel
+            containsAny(m, msg, "uber", "ola", "rapido", "petrol", "fuel", "hpcl", "bpcl", "iocl", "shell", "travel", "metro", "bus", "train", "railway", "irctc", "redbus", "indigo", "air", "bridge") -> "Transport"
+            
+            // Shopping & Grocery
+            containsAny(m, msg, "amazon", "flipkart", "myntra", "ajio", "reliance", "mart", "blinkit", "zepto", "bigbasket", "instamart", "shopping", "store", "supermarket", "grocery", "mall", "dmart", "fossil", "tata") -> "Shopping"
+            
+            // Entertainment
+            containsAny(m, msg, "netflix", "hotstar", "cinema", "pvr", "bookmyshow", "spotify", "google play", "apple", "itunes", "gaming", "steam", "sony", "prime") -> "Entertainment"
+            
+            // Bills & Utilities
+            containsAny(m, msg, "airtel", "jio", "vi", "mobile", "recharge", "electricity", "rent", "maintenance", "gas", "bsnl", "broadband", "wifi", "water", "act", "tata sky", "dth") -> "Bills"
+            
+            // Health & Wellness
+            containsAny(m, msg, "hospital", "pharmacy", "medicine", "apollo", "doc", "health", "gym", "cult", "yoga", "clinic", "pathology", "1mg") -> "Health"
+            
+            // Education
+            containsAny(m, msg, "school", "college", "university", "udemy", "coursera", "fees", "course", "education") -> "Education"
+            
+            // Income / Salary
+            containsAny(m, msg, "salary", "bonus", "dividend", "interest", "stipend") -> "Salary"
+
+            // Default
+            else -> "Other"
+        }
     }
 
     private fun containsAny(merchant: String, msg: String, vararg keywords: String): Boolean {

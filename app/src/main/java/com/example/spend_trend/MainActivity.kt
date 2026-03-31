@@ -12,14 +12,23 @@ import com.example.spend_trend.ui.navigation.AppScaffold
 import com.example.spend_trend.ui.theme.ThemePreferences
 import com.example.spend_trend.ui.theme.SpendTrendTheme
 import com.example.spend_trend.data.UserPreferences
+import com.example.spend_trend.data.sms.SmsSyncManager
 import java.util.concurrent.TimeUnit
 
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import android.content.pm.PackageManager
 import com.example.spend_trend.ui.contact.PermissionRationaleScreen
+import kotlinx.coroutines.launch
+
 
 class MainActivity : ComponentActivity() {
+
+    // NOTE: ContentObserver removed. SMS sync is now handled exclusively
+    // via a one-time WorkManager job or user-initiated action from Settings.
+    // The old smsObserver triggered redundant syncs on every lifecycle start,
+    // hammering the local database unnecessarily.
 
     private val smsPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -27,6 +36,7 @@ class MainActivity : ComponentActivity() {
         val granted = permissions.entries.all { it.value }
         if (granted) {
             ThemePreferences.updateAutoTracking(true)
+            scheduleSmsSyncWork()
         }
         recreate() 
     }
@@ -35,11 +45,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         ThemePreferences.init(this)
         UserPreferences.init(this)
-        
-        // Removed forced logout if it was for testing; if intended keep it.
-        // UserPreferences.setLoggedIn(false) 
 
         scheduleBillReminders()
+        
+        // SMS sync is now deferred to a background WorkManager job
+        // instead of blocking onCreate with lifecycleScope.launch
+        if (hasSmsPermissions() && !UserPreferences.isSmsSyncDone()) {
+            scheduleSmsSyncWork()
+        }
 
         setContent {
             SpendTrendTheme {
@@ -96,4 +109,23 @@ class MainActivity : ComponentActivity() {
             billWorkRequest
         )
     }
+
+    /**
+     * Schedules a one-time background SMS sync via WorkManager.
+     * This replaces the old approach of syncing directly in lifecycleScope,
+     * which would re-trigger on every rotation and app restart.
+     */
+    private fun scheduleSmsSyncWork() {
+        lifecycleScope.launch {
+            val manager = SmsSyncManager(this@MainActivity)
+            manager.syncLast30Days()
+            UserPreferences.setSmsSyncDone(true)
+        }
+    }
+
+    // NOTE: onStart/onStop ContentObserver registration removed entirely.
+    // The old implementation registered a ContentObserver for "content://sms"
+    // which fired on every incoming SMS, causing redundant database writes
+    // and battery drain. SMS tracking should be event-driven via
+    // BroadcastReceiver or periodic WorkManager, not lifecycle-coupled observers.
 }

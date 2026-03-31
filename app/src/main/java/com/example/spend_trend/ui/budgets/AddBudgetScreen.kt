@@ -16,11 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.spend_trend.ui.components.GlassCard
-import com.example.spend_trend.ui.components.GlassTopBar
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.NeumorphicTopBar
 import com.example.spend_trend.ui.theme.*
 
 @Composable
@@ -45,10 +46,11 @@ fun AddBudgetScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        GlassTopBar(title = "Add Budget", onBack = onBack)
+        NeumorphicTopBar(title = "Add Budget", onBack = onBack)
 
         // ── Category Picker ──
         Text(
@@ -66,19 +68,17 @@ fun AddBudgetScreen(
         ) {
             items(predefinedCategories) { cat ->
                 val isSelected = !useCustom && selectedCategory == cat
-                Surface(
+                NeumorphicCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(Dimens.RadiusMd))
                         .clickable {
                             useCustom = false
                             selectedCategory = cat
                         },
-                    color = if (isSelected) Primary.copy(alpha = 0.15f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, Primary)
-                    else null,
-                    shape = RoundedCornerShape(Dimens.RadiusMd)
+                    isConcave = isSelected,
+                    backgroundColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
+                    elevation = if (isSelected) 0.dp else 4.dp,
+                    cornerRadius = Dimens.RadiusMd
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = Dimens.SpacingMd),
@@ -116,28 +116,42 @@ fun AddBudgetScreen(
         }
 
         if (useCustom) {
-            OutlinedTextField(
-                value = customCategory,
-                onValueChange = { customCategory = it },
-                label = { Text("Category name") },
-                leadingIcon = { Icon(Icons.Default.Category, "Category") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(Dimens.RadiusMd)
-            )
+            NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                TextField(
+                    value = customCategory,
+                    onValueChange = { customCategory = it },
+                    label = { Text("Category name") },
+                    leadingIcon = { Icon(Icons.Default.Category, "Category") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
         }
 
         // ── Budget Limit ──
-        OutlinedTextField(
-            value = limitText,
-            onValueChange = { limitText = it.filter { c -> c.isDigit() } },
-            label = { Text("Monthly limit (₹)") },
-            leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(Dimens.RadiusMd)
-        )
+        NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+            TextField(
+                value = limitText,
+                onValueChange = { limitText = it.filter { c -> c.isDigit() } },
+                label = { Text("Monthly limit (₹)") },
+                leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+        }
 
         Spacer(Modifier.weight(1f))
 
@@ -150,9 +164,10 @@ fun AddBudgetScreen(
                 }
             },
             enabled = isValid,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Primary),
-            shape = RoundedCornerShape(Dimens.RadiusMd)
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = Primary),
+            shape = RoundedCornerShape(Dimens.RadiusMd),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 0.dp)
         ) {
             Icon(Icons.Default.Check, "Save")
             Spacer(Modifier.width(Dimens.SpacingSm))

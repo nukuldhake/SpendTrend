@@ -32,7 +32,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.NeumorphicCard
 import com.example.spend_trend.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
@@ -55,6 +55,7 @@ fun AnalyticsScreen() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
         contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
@@ -114,7 +115,7 @@ fun AnalyticsScreen() {
 
 @Composable
 private fun AnalyticsCard(title: String, subtitle: String, content: @Composable () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
         Column {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -127,6 +128,7 @@ private fun AnalyticsCard(title: String, subtitle: String, content: @Composable 
 @Composable
 private fun PieChart(data: List<CategorySpend>, modifier: Modifier = Modifier) {
     val total = data.sumOf { it.amount }.toFloat().coerceAtLeast(1f)
+    val holeColor = MaterialTheme.colorScheme.background
     
     Canvas(modifier = modifier) {
         var startAngle = -90f
@@ -141,9 +143,9 @@ private fun PieChart(data: List<CategorySpend>, modifier: Modifier = Modifier) {
             startAngle += sweepAngle
         }
         
-        // Inner hole for donut effect (optional but looks modern)
+        // Inner hole for donut effect (color matching surface)
         drawCircle(
-            color = Color(0xFF1E293B), // Match background color or card color
+            color = holeColor,
             radius = size.minDimension / 4f
         )
     }
@@ -177,6 +179,8 @@ private fun LegendItem(color: Color, label: String, value: String) {
 @Composable
 private fun YoYChart(data: List<MonthlyComparison>, modifier: Modifier = Modifier) {
     val max = data.flatMap { listOf(it.currentYear, it.previousYear) }.maxOrNull()?.toFloat()?.coerceAtLeast(1f) ?: 1f
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    val previousYearColor = MaterialTheme.colorScheme.outlineVariant
     
     Canvas(modifier = modifier) {
         val w = size.width
@@ -212,8 +216,8 @@ private fun YoYChart(data: List<MonthlyComparison>, modifier: Modifier = Modifie
             )
         }
 
-        // Draw Previous Year (Dashed/Lighter)
-        drawPathEffect(previousPoints, Color.White.copy(alpha = 0.2f))
+        // Draw Previous Year (Muted)
+        drawPathEffect(previousPoints, previousYearColor)
         
         // Draw Current Year (Solid/Primary)
         drawPathEffect(currentPoints, Primary)

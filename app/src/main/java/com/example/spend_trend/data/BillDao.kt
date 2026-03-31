@@ -17,6 +17,14 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE referenceNo = :refNo LIMIT 1")
     suspend fun getByReferenceNo(refNo: String): BillEntity?
 
+    @Query("""
+        SELECT * FROM bills 
+        WHERE amount = :amount AND category = :category 
+          AND dueDateMillis >= :startMillis AND dueDateMillis <= :endMillis 
+        LIMIT 1
+    """)
+    suspend fun findSimilarBill(amount: Int, category: String, startMillis: Long, endMillis: Long): BillEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBill(bill: BillEntity)
 

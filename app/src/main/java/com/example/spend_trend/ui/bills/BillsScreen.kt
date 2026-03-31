@@ -31,7 +31,7 @@ import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.BillEntity
 import com.example.spend_trend.data.repository.BillRepository
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.NeumorphicCard
 import com.example.spend_trend.ui.theme.*
 import java.time.Instant
 import java.time.ZoneId
@@ -57,36 +57,59 @@ fun BillsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
         Spacer(Modifier.height(Dimens.SpacingSm))
 
-        // ── Tabs ──
-        Row(
+        // ── Neumorphic Tabs ──
+        NeumorphicCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .padding(4.dp)
+                .height(56.dp),
+            isConcave = true,
+            cornerRadius = 28.dp,
+            backgroundColor = MaterialTheme.colorScheme.background
         ) {
-            listOf("Pending", "History").forEachIndexed { index, title ->
-                val isSelected = selectedTab == index
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (isSelected) Primary else Color.Transparent)
-                        .clickable { selectedTab = index },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp)
+            ) {
+                listOf("Pending", "History").forEachIndexed { index, title ->
+                    val isSelected = selectedTab == index
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { selectedTab = index },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            NeumorphicCard(
+                                modifier = Modifier.fillMaxSize(),
+                                cornerRadius = 24.dp,
+                                elevation = 4.dp,
+                                backgroundColor = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Primary
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -94,7 +117,7 @@ fun BillsScreen() {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
-            contentPadding = PaddingValues(bottom = Dimens.BottomNavClearance)
+            contentPadding = PaddingValues(bottom = 120.dp)
         ) {
             val displayList = if (selectedTab == 0) pendingBills else paidBills
 
@@ -131,11 +154,11 @@ private fun BillCard(
 
     val isOverdue = !bill.isPaid && bill.dueDateMillis < System.currentTimeMillis()
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.SpacingSm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Icon
@@ -144,16 +167,17 @@ private fun BillCard(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(
-                        if (bill.isPaid) IncomeGreen.copy(alpha = 0.15f)
-                        else if (isOverdue) ExpenseRose.copy(alpha = 0.15f)
-                        else Primary.copy(alpha = 0.15f)
+                        if (bill.isPaid) IncomeGreen.copy(alpha = 0.10f)
+                        else if (isOverdue) ExpenseRose.copy(alpha = 0.10f)
+                        else Primary.copy(alpha = 0.10f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (bill.isPaid) Icons.Default.CheckCircle else Icons.Default.Payment,
                     contentDescription = null,
-                    tint = if (bill.isPaid) IncomeGreen else if (isOverdue) ExpenseRose else Primary
+                    tint = if (bill.isPaid) IncomeGreen else if (isOverdue) ExpenseRose else Primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -177,7 +201,7 @@ private fun BillCard(
             // Amount
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    "₹${bill.amount}",
+                    "₹${bill.amount.toInt().formatWithComma()}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -187,7 +211,7 @@ private fun BillCard(
                         onClick = onPay,
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                     ) {
-                        Text("PAY NOW", color = Primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("PAY NOW", color = Primary, fontWeight = FontWeight.Black, fontSize = 12.sp)
                     }
                 }
             }
@@ -200,16 +224,23 @@ private fun EmptyBillsState(isHistory: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 60.dp)
-            .graphicsLayer(alpha = 0.6f),
+            .padding(vertical = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        NeumorphicCard(
+            modifier = Modifier.size(100.dp),
+            cornerRadius = 50.dp,
+            elevation = 6.dp
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
+            }
+        }
         Spacer(Modifier.height(Dimens.SpacingLg))
         Text(
             if (isHistory) "No payment history yet" else "All bills are paid! 🎉",

@@ -18,9 +18,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.data.BudgetEntity
-import com.example.spend_trend.ui.components.GlassCard
-import com.example.spend_trend.ui.components.GlassTopBar
-import com.example.spend_trend.ui.components.GradientCard
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.NeumorphicTopBar
 import com.example.spend_trend.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,12 +57,13 @@ fun BudgetDetailScreen(
             .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        GlassTopBar(title = b.category, onBack = onBack)
+        NeumorphicTopBar(title = b.category, onBack = onBack)
 
-        // ── Hero Card ──
-        GradientCard(
+        // ── Neumorphic Hero Card ──
+        NeumorphicCard(
             modifier = Modifier.fillMaxWidth(),
-            brush = GradientPalette.EmeraldTeal
+            elevation = 12.dp,
+            cornerRadius = Dimens.RadiusLg
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -71,15 +71,15 @@ fun BudgetDetailScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(64.dp)
                         .clip(CircleShape)
-                        .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         categoryIcon(b.category),
                         contentDescription = "${b.category} icon",
-                        tint = androidx.compose.ui.graphics.Color.White,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(Dimens.IconLg)
                     )
                 }
@@ -90,18 +90,18 @@ fun BudgetDetailScreen(
                     "₹${b.monthlyLimit.toInt().formatWithComma()}",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
-                    color = androidx.compose.ui.graphics.Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     "Monthly budget",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
         // ── Progress Card ──
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -111,7 +111,7 @@ fun BudgetDetailScreen(
                     progress = { progress },
                     modifier = Modifier.size(120.dp),
                     color = statusColor,
-                    trackColor = statusColor.copy(alpha = 0.12f),
+                    trackColor = statusColor.copy(alpha = 0.10f),
                     strokeWidth = 10.dp,
                     strokeCap = StrokeCap.Round
                 )
@@ -150,9 +150,10 @@ fun BudgetDetailScreen(
                 newLimitText = b.monthlyLimit.toInt().toString()
                 showEditSheet = true
             },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Primary),
-            shape = RoundedCornerShape(Dimens.RadiusMd)
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = Primary),
+            shape = RoundedCornerShape(Dimens.RadiusMd),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 0.dp)
         ) {
             Icon(Icons.Default.Edit, "Edit budget")
             Spacer(Modifier.width(Dimens.SpacingSm))
@@ -194,16 +195,23 @@ fun BudgetDetailScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                OutlinedTextField(
-                    value = newLimitText,
-                    onValueChange = { newLimitText = it.filter { c -> c.isDigit() } },
-                    label = { Text("New monthly limit (₹)") },
-                    leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(Dimens.RadiusMd)
-                )
+                NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                    TextField(
+                        value = newLimitText,
+                        onValueChange = { newLimitText = it.filter { c -> c.isDigit() } },
+                        label = { Text("New monthly limit (₹)") },
+                        leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                        )
+                    )
+                }
 
                 Button(
                     onClick = {

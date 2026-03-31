@@ -1,6 +1,7 @@
 package com.example.spend_trend.ui.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.theme.*
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.filled.Check
 
 @Composable
 fun PinSetupScreen(
@@ -43,14 +50,15 @@ fun PinSetupScreen(
                 )
             )
             Text(
-                text = "Secure your account with a 4-digit PIN",
+                text = if (!isConfirming) "Choose a 4-digit PIN to secure your account"
+                       else "Re-enter your PIN to confirm",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
 
             Spacer(Modifier.height(48.dp))
 
-            // Pin Dots Indicator
+            // Neumorphic Pin Dots Indicator
             Row(
                 modifier = Modifier.padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -58,22 +66,22 @@ fun PinSetupScreen(
                 val currentPin = if (!isConfirming) viewModel.pin else viewModel.confirmPin
                 repeat(4) { index ->
                     val isActive = currentPin.length > index
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isActive) MaterialTheme.colorScheme.primary 
-                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
-                            )
-                    )
+                    NeumorphicCard(
+                        modifier = Modifier.size(20.dp),
+                        cornerRadius = 10.dp,
+                        elevation = if (isActive) 0.dp else 4.dp,
+                        isConcave = isActive,
+                        backgroundColor = if (isActive) Primary else MaterialTheme.colorScheme.background
+                    ) {
+                        // Card handles visual state
+                    }
                 }
             }
 
             Spacer(Modifier.height(32.dp))
 
             // Custom Layout for Numeric Keypad
-            val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "OK")
+            val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK")
             
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 for (row in 0..3) {
@@ -82,7 +90,7 @@ fun PinSetupScreen(
                             val key = keys[row * 3 + col]
                             KeypadButton(key) {
                                 when (key) {
-                                    "C" -> {
+                                    "⌫" -> {
                                         if (isConfirming) {
                                             if (viewModel.confirmPin.isNotEmpty()) viewModel.confirmPin = viewModel.confirmPin.dropLast(1)
                                         } else {
@@ -91,9 +99,13 @@ fun PinSetupScreen(
                                     }
                                     "OK" -> {
                                         if (!isConfirming && viewModel.pin.length == 4) {
+                                            viewModel.error = null
                                             isConfirming = true
                                         } else if (isConfirming && viewModel.confirmPin.length == 4) {
-                                            if (viewModel.setPin()) onSetupComplete()
+                                            if (viewModel.setPin()) {
+                                                onSetupComplete()
+                                            }
+                                            // If setPin() returns false, error is shown below
                                         }
                                     }
                                     else -> {
@@ -104,15 +116,30 @@ fun PinSetupScreen(
                                         }
                                     }
                                 }
-                                // Auto-advance logic
-                                if (!isConfirming && viewModel.pin.length == 4 && key != "C" && key != "OK") {
-                                    isConfirming = true
-                                } else if (isConfirming && viewModel.confirmPin.length == 4 && key != "C" && key != "OK") {
-                                    if (viewModel.setPin()) onSetupComplete()
-                                }
+                                // NOTE: Auto-advance removed. User MUST press OK to proceed.
                             }
                         }
                     }
+                }
+            }
+
+            // ── Back / Reset Button (Confirm Step) ──
+            if (isConfirming) {
+                Spacer(Modifier.height(8.dp))
+                TextButton(
+                    onClick = {
+                        // Reset both PINs and go back to first entry
+                        viewModel.pin = ""
+                        viewModel.confirmPin = ""
+                        viewModel.error = null
+                        isConfirming = false
+                    }
+                ) {
+                    Text(
+                        "↩ Re-enter PIN",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 

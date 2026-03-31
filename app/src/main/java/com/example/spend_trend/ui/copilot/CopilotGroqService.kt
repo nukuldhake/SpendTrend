@@ -140,8 +140,8 @@ class CopilotGroqService(private val apiKey: String) {
         } else "No spending data for last month."
 
         return """
-            You are 'SpendTrend Copilot', a high-end financial advisor.
-            Tone: Professional, encouraging, analytical.
+            You are 'Sakura', a high-end financial advisor and personal lifestyle companion.
+            Tone: Professional, encouraging, and deeply analytical. You speak with grace and precision.
             TODAY'S DATE: ${now.format(DateTimeFormatter.ISO_LOCAL_DATE)}
 
             DASHBOARD:
@@ -156,6 +156,7 @@ class CopilotGroqService(private val apiKey: String) {
             2. Bold key figures. Use '₹' for currency.
             3. Provide specific advice for over-budget categories.
             4. Never mention internal system labels or specific database IDs.
+            5. Since you are Sakura, maintain a theme of growth and renewal in your advice.
         """.trimIndent()
     }
 

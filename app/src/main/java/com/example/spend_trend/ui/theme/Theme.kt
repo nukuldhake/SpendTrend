@@ -50,18 +50,18 @@ private val DarkColors = darkColorScheme(
 //  Light Color Scheme
 // ════════════════════════════════════════════════
 private val LightColors = lightColorScheme(
-    primary             = Color(0xFF059669), // slightly deeper for contrast on white
+    primary             = Color(0xFF0D9488), // Teal 600
     onPrimary           = Color(0xFFFFFFFF),
-    primaryContainer    = Color(0xFFD1FAE5),
-    onPrimaryContainer  = Color(0xFF064E3B),
-    secondary           = Secondary,
-    onSecondary         = OnSecondary,
+    primaryContainer    = Color(0xFFCCFBF1),
+    onPrimaryContainer  = Color(0xFF134E4A),
+    secondary           = Color(0xFF2563EB), // Blue 600
+    onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFDBEAFE),
-    onSecondaryContainer = Color(0xFF1E3A5F),
-    tertiary            = Tertiary,
-    onTertiary          = OnTertiary,
+    onSecondaryContainer = Color(0xFF1E3A8A),
+    tertiary            = Color(0xFF7C3AED), // Violet 600
+    onTertiary          = Color(0xFFFFFFFF),
     tertiaryContainer   = Color(0xFFEDE9FE),
-    onTertiaryContainer = Color(0xFF3B1F7E),
+    onTertiaryContainer = Color(0xFF4C1D95),
     error               = Color(0xFFDC2626),
     onError             = Color(0xFFFFFFFF),
     errorContainer      = Color(0xFFFEE2E2),

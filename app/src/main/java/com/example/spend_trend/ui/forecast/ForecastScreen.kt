@@ -32,8 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.GlassCard
-import com.example.spend_trend.ui.components.GradientCard
+import com.example.spend_trend.ui.components.NeumorphicCard
 import com.example.spend_trend.ui.theme.*
 import com.example.spend_trend.data.model.ForecastInsight
 import com.example.spend_trend.data.model.InsightType
@@ -68,47 +67,51 @@ fun ForecastScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.SpacingLg)
             .padding(vertical = Dimens.SpacingLg)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        // ── Gradient Hero ──
-        GradientCard(
+        // ── Neumorphic Hero ──
+        NeumorphicCard(
             modifier = Modifier.fillMaxWidth(),
-            brush = GradientPalette.DeepOcean
+            elevation = 12.dp, // High elevation for hero
+            cornerRadius = Dimens.RadiusLg
         ) {
-            Text(
-                "Projected Year-End",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.7f)
-            )
-            Spacer(Modifier.height(Dimens.SpacingXs))
-            Text(
-                "₹${projectedYearEnd.formatWithComma()}",
-                style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(Modifier.height(Dimens.SpacingSm))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    if (trendPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                    contentDescription = "Trend direction",
-                    tint = if (trendPercentage > 0) ExpenseRose else IncomeGreen,
-                    modifier = Modifier.size(Dimens.IconSm)
-                )
-                Spacer(Modifier.width(Dimens.SpacingXs))
+            Column(modifier = Modifier.padding(Dimens.SpacingSm)) {
                 Text(
-                    if (trendPercentage > 0) "+$trendPercentage% vs last year" else "$trendPercentage%",
+                    "Linear Annual Run-Rate",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(Dimens.SpacingXs))
+                Text(
+                    "₹${projectedYearEnd.formatWithComma()}",
+                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(Dimens.SpacingSm))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (trendPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                        contentDescription = "Trend direction",
+                        tint = if (trendPercentage > 0) ExpenseRose else IncomeGreen,
+                        modifier = Modifier.size(Dimens.IconSm)
+                    )
+                    Spacer(Modifier.width(Dimens.SpacingXs))
+                    Text(
+                        if (trendPercentage > 0) "+$trendPercentage% vs last year" else "$trendPercentage%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (trendPercentage > 0) ExpenseRose else IncomeGreen
+                    )
+                }
             }
         }
 
-        // ── Glass Chart ──
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        // ── Neumorphic Chart ──
+        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
             Text(
                 "Spending Forecast",
                 style = MaterialTheme.typography.titleMedium,
@@ -126,7 +129,7 @@ fun ForecastScreen() {
 
         // ── Tooltip ──
         if (selectedMonthIndex >= 0) {
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            NeumorphicCard(modifier = Modifier.fillMaxWidth(), isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
                 Text(
                     "${monthFullNames[selectedMonthIndex]} Projection",
                     style = MaterialTheme.typography.titleMedium,
@@ -162,7 +165,7 @@ fun ForecastScreen() {
                     ((amount - prevAmount) / prevAmount * 100).roundToInt()
                 } else 0
 
-                GlassCard(modifier = Modifier.width(130.dp)) {
+                NeumorphicCard(modifier = Modifier.width(130.dp), elevation = 4.dp) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             month,
@@ -216,9 +219,11 @@ fun ForecastScreen() {
                 color = MaterialTheme.colorScheme.onBackground
             )
             
-            Surface(
-                color = Primary.copy(alpha = 0.12f),
-                shape = CircleShape,
+            NeumorphicCard(
+                elevation = 2.dp,
+                cornerRadius = 12.dp,
+                isConcave = true,
+                backgroundColor = MaterialTheme.colorScheme.background,
                 modifier = Modifier.offset(y = (-2).dp)
             ) {
                 Row(
@@ -243,7 +248,7 @@ fun ForecastScreen() {
         }
 
         insights.forEach { insight ->
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            NeumorphicCard(modifier = Modifier.fillMaxWidth(), elevation = 4.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val icon = when (insight.type) {
                         InsightType.POSITIVE -> Icons.Default.CheckCircle
@@ -347,7 +352,7 @@ fun ForecastChart(
             drawPath(
                 path = areaPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(lineColor.copy(alpha = 0.25f), Color.Transparent)
+                    colors = listOf(lineColor.copy(alpha = 0.15f), Color.Transparent)
                 )
             )
 

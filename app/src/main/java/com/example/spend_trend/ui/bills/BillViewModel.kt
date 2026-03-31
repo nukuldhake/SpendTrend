@@ -41,6 +41,19 @@ class BillViewModel(
         }
     }
 
+    fun addBill(title: String, amount: Double, category: String, dueDateMillis: Long) {
+        viewModelScope.launch {
+            val bill = BillEntity(
+                title = title,
+                amount = amount.toInt(),
+                category = category,
+                dueDateMillis = dueDateMillis,
+                isPaid = false
+            )
+            billRepository.insertBill(bill)
+        }
+    }
+
     fun deleteBill(bill: BillEntity) {
         viewModelScope.launch {
             billRepository.deleteBill(bill)

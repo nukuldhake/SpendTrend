@@ -3,7 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.secrets)
+    alias(libs.plugins.google.services)
     id("com.google.devtools.ksp") version "2.0.21-1.0.28"
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 android {
@@ -64,6 +66,13 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Supabase
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.android)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // Gemini AI SDK (Keeping for now, can remove later)
     implementation(libs.generativeai)

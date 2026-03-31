@@ -16,8 +16,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
@@ -26,7 +28,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
 
-import com.example.spend_trend.ui.components.GlassTopBar
+import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.NeumorphicChip
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -56,9 +60,18 @@ fun AddTransactionScreen(
     var transactionDate by remember { mutableStateOf(LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showCategoryPicker by remember { mutableStateOf(false) }
+    var hasAttemptedSave by remember { mutableStateOf(false) }
 
-    val amount = amountText.toFloatOrNull() ?: 0f
-    val isValid = description.isNotBlank() && amount > 0f && selectedCategory != null
+    // Strict validation: reject malformed floats like "12..34" or "12.3.4"
+    val parsedAmount = amountText.toFloatOrNull()
+    val isAmountValid = parsedAmount != null && parsedAmount > 0f
+    val amountError = when {
+        amountText.isBlank() && hasAttemptedSave -> "Amount is required"
+        amountText.isNotBlank() && parsedAmount == null -> "Invalid amount (e.g. \"12..3\")"
+        parsedAmount != null && parsedAmount <= 0f -> "Amount must be greater than zero"
+        else -> null
+    }
+    val isValid = description.isNotBlank() && isAmountValid && selectedCategory != null
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -67,16 +80,19 @@ fun AddTransactionScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    if (isValid) {
+                    if (isValid && parsedAmount != null) {
                         val newUi = TransactionUi(
                             title = description.trim().ifEmpty { "Transaction" },
                             category = selectedCategory!!,
-                            amount = if (isIncome) amount.toInt() else -amount.toInt(),
+                            amount = if (isIncome) parsedAmount.toInt() else -parsedAmount.toInt(),
                             date = transactionDate
                         )
 
                         // Save using ViewModel (real DB)
                         viewModel.addTransaction(newUi)
+
+                        // Trigger callback for UI feedback
+                        onSave(NewTransaction(newUi.title, newUi.amount.toFloat(), newUi.category, newUi.date))
 
                         // Show success snackbar
                         snackbarHostState?.let { host ->
@@ -91,6 +107,8 @@ fun AddTransactionScreen(
 
                         onViewAdded()
                         onDismiss()
+                    } else {
+                        hasAttemptedSave = true
                     }
                 },
                 containerColor = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
@@ -99,79 +117,109 @@ fun AddTransactionScreen(
                 Icon(Icons.Default.Check, contentDescription = "Save")
             }
         }
-    ) { padding ->
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 16.dp)
-                .padding(horizontal = 24.dp)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
-            GlassTopBar(title = "New Transaction", onBack = onDismiss)
+            NeumorphicTopBar(title = "New Transaction", onBack = onDismiss)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
 
             // Income / Expense toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
             ) {
-                FilterChip(
-                    selected = !isIncome,
+                NeumorphicChip(
+                    text = "Expense",
+                    isSelected = !isIncome,
                     onClick = { isIncome = false },
-                    label = { Text("Expense") },
-                    leadingIcon = { Icon(Icons.Default.TrendingDown, null) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                    selectedColor = MaterialTheme.colorScheme.errorContainer,
+                    onSelectedColor = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f)
                 )
-                FilterChip(
-                    selected = isIncome,
+                NeumorphicChip(
+                    text = "Income",
+                    isSelected = isIncome,
                     onClick = { isIncome = true },
-                    label = { Text("Income") },
-                    leadingIcon = { Icon(Icons.Default.TrendingUp, null) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Amount – recessed card
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth(),
+                isConcave = true,
+                backgroundColor = MaterialTheme.colorScheme.background
+            ) {
+                TextField(
+                    value = amountText,
+                    onValueChange = { new ->
+                        if (new.all { it.isDigit() || it == '.' }) {
+                            amountText = new
+                        }
+                    },
+                    label = { Text("Amount") },
+                    prefix = { Text(if (isIncome) "+" else "−") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Next
+                    ),
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    isError = amountError != null,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                     )
                 )
             }
 
-            // Amount – big & prominent
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { new ->
-                    if (new.all { it.isDigit() || it == '.' }) {
-                        amountText = new
-                    }
-                },
-                label = { Text("Amount") },
-                prefix = { Text(if (isIncome) "+" else "−") },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Decimal,
-                    imeAction = ImeAction.Next
-                ),
-                textStyle = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    focusedLabelColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            // Inline validation error
+            if (amountError != null) {
+                Text(
+                    text = amountError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 4.dp)
                 )
-            )
+            }
 
-            // Category Picker
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            // Validation helper when save attempted but category missing
+            if (hasAttemptedSave && selectedCategory == null) {
+                Text(
+                    text = "Please select a category",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+
+            // Category Picker – recessed card
+            NeumorphicCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showCategoryPicker = true }
+                    .clickable { showCategoryPicker = true },
+                isConcave = true,
+                backgroundColor = MaterialTheme.colorScheme.background
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(Dimens.SpacingSm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (selectedCategory != null) {
@@ -179,7 +227,7 @@ fun AddTransactionScreen(
                             imageVector = categoryIcon(selectedCategory!!),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                         Spacer(Modifier.width(12.dp))
                     }
@@ -205,37 +253,49 @@ fun AddTransactionScreen(
                 }
             }
 
-            // Description
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description / Merchant") },
-                placeholder = { Text("e.g. Lunch at Zomato") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            // Description – recessed card
+            NeumorphicCard(
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4
-            )
+                isConcave = true,
+                backgroundColor = MaterialTheme.colorScheme.background
+            ) {
+                TextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description / Merchant") },
+                    placeholder = { Text("e.g. Lunch at Zomato") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
 
-            // Date Picker Field
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            // Date Picker Field – recessed card
+            NeumorphicCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showDatePicker = true }
+                    .clickable { showDatePicker = true },
+                isConcave = true,
+                backgroundColor = MaterialTheme.colorScheme.background
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(Dimens.SpacingSm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.CalendarToday,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                     Spacer(Modifier.width(12.dp))
 
@@ -261,6 +321,7 @@ fun AddTransactionScreen(
             }
 
             Spacer(Modifier.weight(1f))
+            }
         }
     }
 
@@ -329,5 +390,3 @@ data class NewTransaction(
     val category: String,
     val date: LocalDate
 )
-
-

@@ -26,7 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.BudgetEntity
 import com.example.spend_trend.data.repository.BudgetRepository
-import com.example.spend_trend.ui.components.GlassCard
+import com.example.spend_trend.ui.components.NeumorphicCard
 import com.example.spend_trend.ui.theme.*
 
 @Composable
@@ -52,12 +52,14 @@ fun BudgetsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.SpacingLg)
             .padding(vertical = Dimens.SpacingLg)
     ) {
         if (hasOverBudget) {
-            val overBudgetCategory = budgets.first { it.currentSpent > it.monthlyLimit }.category
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+        val overBudgetCategories = budgets.filter { it.currentSpent > it.monthlyLimit }
+        overBudgetCategories.forEach { overBudget ->
+            NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -75,14 +77,16 @@ fun BudgetsScreen(
                     }
                     Spacer(Modifier.width(Dimens.SpacingMd))
                     Text(
-                        "You've exceeded your $overBudgetCategory budget this month",
+                        "You've exceeded your ${overBudget.category} budget this month",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ExpenseRose
                     )
                 }
             }
-            Spacer(Modifier.height(Dimens.SpacingLg))
+            Spacer(Modifier.height(Dimens.SpacingSm))
         }
+        Spacer(Modifier.height(Dimens.SpacingSm))
+    }
 
         if (budgets.isEmpty()) {
             // Empty state
@@ -112,7 +116,7 @@ fun BudgetsScreen(
             Spacer(Modifier.weight(1f))
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Adaptive(minSize = 160.dp),
                 verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
                 horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
                 contentPadding = PaddingValues(bottom = Dimens.BottomNavClearance)
@@ -128,7 +132,7 @@ fun BudgetsScreen(
                             .graphicsLayer { this.alpha = alpha }
                             .clickable { onCardClick(budget.id) }
                     ) {
-                        BudgetGlassCard(budget)
+                        BudgetNeumorphicCard(budget)
                     }
                 }
             }
@@ -137,7 +141,7 @@ fun BudgetsScreen(
 }
 
 @Composable
-private fun BudgetGlassCard(budget: BudgetEntity) {
+private fun BudgetNeumorphicCard(budget: BudgetEntity) {
     val progress = if (budget.monthlyLimit > 0) (budget.currentSpent / budget.monthlyLimit).coerceIn(0f, 1f) else 0f
     val remaining = (budget.monthlyLimit - budget.currentSpent).toInt()
 
@@ -147,7 +151,7 @@ private fun BudgetGlassCard(budget: BudgetEntity) {
         else -> Primary
     }
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -157,7 +161,7 @@ private fun BudgetGlassCard(budget: BudgetEntity) {
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(statusColor.copy(alpha = 0.15f)),
+                    .background(statusColor.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -179,7 +183,7 @@ private fun BudgetGlassCard(budget: BudgetEntity) {
                 progress = { progress },
                 modifier = Modifier.size(80.dp),
                 color = statusColor,
-                trackColor = statusColor.copy(alpha = 0.12f),
+                trackColor = statusColor.copy(alpha = 0.10f),
                 strokeWidth = 8.dp,
                 strokeCap = StrokeCap.Round
             )

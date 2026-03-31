@@ -46,16 +46,24 @@ val DarkOnSurfaceVariant = Color(0xFF94A3B8)
 val DarkOutline         = Color(0xFF334155)
 val DarkOutlineVariant  = Color(0xFF1E293B)
 
+// ── Dark Mode Shadows ──
+val DarkNeumorphicLightShadow = Color(0xFF1E293B).copy(alpha = 0.5f)
+val DarkNeumorphicDarkShadow  = Color(0xFF020617)
+
 // ════════════════════════════════════════════════
-//  Light Mode — Soft Slate
+//  Neumorphic (Soft UI) — Light Mode Base
 // ════════════════════════════════════════════════
-val LightBackground     = Color(0xFFF7FDFB)
-val LightSurface        = Color(0xFFFFFFFF)
-val LightSurfaceVariant = Color(0xFFECFDF5)
-val LightOnSurface      = Color(0xFF0F172A)
+val SoftZinc                = Color(0xFFEBEDF1)
+val NeumorphicLightShadow   = Color(0xFFFFFFFF)
+val NeumorphicDarkShadow    = Color(0xFFC5CDDA)
+
+val LightBackground     = SoftZinc
+val LightSurface        = Color(0xFFF4F5F7)
+val LightSurfaceVariant = Color(0xFFE0E4E8)
+val LightOnSurface      = Color(0xFF111827)
 val LightOnSurfaceVariant = Color(0xFF475569)
-val LightOutline        = Color(0xFFCBD5E1)
-val LightOutlineVariant = Color(0xFFE2E8F0)
+val LightOutline        = Color(0xFFB0BEC5)
+val LightOutlineVariant = Color(0xFFCFD8DC)
 
 val InverseSurface      = Color(0xFF1E293B)
 val InverseOnSurface    = Color(0xFFF1F5F9)
