@@ -1,7 +1,11 @@
 package com.example.spend_trend.ui.auth
 
 import androidx.compose.animation.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -25,16 +29,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.foundation.border
-import androidx.compose.material.icons.filled.ArrowForward
 
 @Composable
 fun LoginScreen(
@@ -52,53 +49,70 @@ fun LoginScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Subtle background ornament replaced with soft shadow logic if needed, 
-        // but keeping it simple as SoftZinc is the hero.
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
-                .navigationBarsPadding(),
+                .padding(Dimens.SpacingXxl)
+                .navigationBarsPadding()
+                .statusBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // ── Brand Logo Area ──
+            BlockCard(
+                modifier = Modifier.size(80.dp),
+                backgroundColor = MonoBlack,
+                hasShadow = true,
+                shadowColor = Primary
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "₹",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Black,
+                        color = MonoWhite
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(Dimens.SpacingLg))
+
             Text(
-                text = "SpendTrend",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 2.sp
-                ),
-                color = MaterialTheme.colorScheme.primary
+                text = "SPENDTREND",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = if (!isRegistered) "Master your finances" else "Welcome Back, ${viewModel.registeredName ?: ""}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                text = if (!isRegistered) "MASTER YOUR FINANCES"
+                       else "WELCOME BACK, ${viewModel.registeredName?.uppercase() ?: ""}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Black,
+                color = MonoGrayMedium
             )
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(Dimens.Spacing3xl))
 
             if (!isRegistered) {
-                // Not registered locally - Allow Email Login or Register
-                Column {
-                    NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
-                        TextField(
+                // Not registered — email + password login
+                Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)) {
+                    Column {
+                        Text("EMAIL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.height(Dimens.SpacingSm))
+                        OutlinedTextField(
                             value = viewModel.email,
                             onValueChange = { viewModel.email = it },
-                            label = { Text("Email Address") },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
+                            shape = androidx.compose.ui.graphics.RectangleShape,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Primary,
+                                unfocusedBorderColor = MonoGrayLight
                             )
                         )
                     }
-                    
-                    Spacer(Modifier.height(16.dp))
-                    
+
                     PasswordLoginContent(
                         viewModel = viewModel,
                         onLoginSuccess = onLoginSuccess,
@@ -106,30 +120,43 @@ fun LoginScreen(
                         passwordVisible = passwordVisible,
                         onToggleVisibility = { passwordVisible = !passwordVisible }
                     )
-                    
-                    Spacer(Modifier.height(24.dp))
-                    
-                    TextButton(onClick = onNavigateToRegister, modifier = Modifier.fillMaxWidth()) {
-                        Text("New here? Create an account")
-                    }
+
+                    Spacer(Modifier.height(Dimens.SpacingXxl))
+
+                    BlockButton(
+                        text = "CREATE ACCOUNT",
+                        onClick = onNavigateToRegister,
+                        modifier = Modifier.fillMaxWidth(),
+                        isPrimary = false
+                    )
                 }
             } else {
-                // Registered - Fixed Email Display
-                Text(
-                    text = viewModel.registeredName ?: "Welcome",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = viewModel.registeredEmail ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-                
-                Spacer(Modifier.height(24.dp))
+                // Registered — show name/email + PIN or password
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = viewModel.registeredName?.uppercase() ?: "WELCOME",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = viewModel.registeredEmail?.uppercase() ?: "",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MonoGrayMedium
+                    )
+                }
 
-                AnimatedContent(targetState = showPasswordLogin, label = "loginType") { showPassword ->
+                Spacer(Modifier.height(Dimens.SpacingXxl))
+
+                AnimatedContent(
+                    targetState = showPasswordLogin,
+                    label = "loginType",
+                    transitionSpec = {
+                        (fadeIn(tween(300)) + slideInVertically { it / 4 }) togetherWith
+                        (fadeOut(tween(200)) + slideOutVertically { -it / 4 })
+                    }
+                ) { showPassword ->
                     if (!showPassword && hasPin) {
                         PinLoginContent(
                             viewModel = viewModel,
@@ -148,11 +175,14 @@ fun LoginScreen(
                 }
             }
 
-            if (viewModel.error != null) {
+            // Error display
+            AnimatedVisibility(visible = viewModel.error != null) {
                 Text(
-                    text = viewModel.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp),
+                    text = viewModel.error?.uppercase() ?: "",
+                    color = ExpenseRose,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(top = Dimens.SpacingLg),
                     textAlign = TextAlign.Center
                 )
             }
@@ -160,7 +190,6 @@ fun LoginScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PasswordLoginContent(
     viewModel: AuthViewModel,
@@ -169,56 +198,49 @@ fun PasswordLoginContent(
     passwordVisible: Boolean,
     onToggleVisibility: () -> Unit
 ) {
-    Column {
-        NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
-            TextField(
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)) {
+        Column {
+            Text("PASSWORD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(Dimens.SpacingSm))
+            OutlinedTextField(
                 value = viewModel.password,
                 onValueChange = { viewModel.password = it },
-                label = { Text("Password") },
                 modifier = Modifier.fillMaxWidth(),
+                shape = androidx.compose.ui.graphics.RectangleShape,
+                singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 trailingIcon = {
                     IconButton(onClick = onToggleVisibility) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password"
+                            contentDescription = "Toggle password",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = MonoGrayLight
                 )
             )
         }
 
-        Spacer(Modifier.height(32.dp))
-
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth().height(56.dp).clickable(enabled = !viewModel.isLoading) { viewModel.loginWithPassword(onLoginSuccess) },
-            cornerRadius = 16.dp,
-            elevation = if (viewModel.isLoading) 0.dp else 6.dp,
-            isConcave = viewModel.isLoading
-        ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (viewModel.isLoading) {
-                    CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Login", fontWeight = FontWeight.Bold, color = Primary)
-                }
-            }
-        }
+        BlockButton(
+            text = "SIGN IN",
+            onClick = { viewModel.loginWithPassword(onLoginSuccess) },
+            modifier = Modifier.fillMaxWidth().height(Dimens.MinTouchTarget),
+            enabled = !viewModel.isLoading,
+            isLoading = viewModel.isLoading
+        )
 
         if (onSwitchToPin != null) {
-            TextButton(
+            BlockButton(
+                text = "USE PIN",
                 onClick = onSwitchToPin,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Login with PIN instead")
-            }
+                modifier = Modifier.fillMaxWidth(),
+                isPrimary = false
+            )
         }
     }
 }
@@ -231,70 +253,75 @@ fun PinLoginContent(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(vertical = 16.dp)
+        modifier = Modifier.padding(vertical = Dimens.SpacingLg)
     ) {
-        // Pin Indicator with subtle animation
+        // ── PIN dots ──
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(Dimens.SpacingLg),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
             repeat(4) { index ->
                 val isActive = viewModel.pin.length > index
-                
-                NeumorphicCard(
-                    modifier = Modifier.size(20.dp),
-                    cornerRadius = 10.dp,
-                    elevation = if (isActive) 0.dp else 4.dp,
-                    isConcave = isActive,
-                    backgroundColor = if (isActive) Primary else MaterialTheme.colorScheme.background
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                        .background(if (isActive) Primary else MaterialTheme.colorScheme.surface)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(Dimens.SpacingHuge))
+
+        // ── Keypad ──
+        val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK")
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            for (row in 0..3) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
+                    modifier = Modifier.padding(vertical = Dimens.SpacingSm)
                 ) {
-                    // Empty content, card does the work
+                    for (col in 0..2) {
+                        val key = keys[row * 3 + col]
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                                .clickable {
+                                    when (key) {
+                                        "⌫" -> {
+                                            if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1)
+                                        }
+                                        "OK" -> {
+                                            if (viewModel.loginWithPin()) onLoginSuccess()
+                                        }
+                                        else -> {
+                                            if (viewModel.pin.length < 4) viewModel.pin += key
+                                        }
+                                    }
+                                }
+                                .background(if (key == "OK") Primary else MaterialTheme.colorScheme.surface),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = key,
+                                fontWeight = FontWeight.Black,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = if (key == "OK") MonoWhite else MonoBlack
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(Dimens.SpacingXxl))
 
-        // Neumorphic Keypad Container
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-                val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK")
-                
-                for (row in 0..3) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        for (col in 0..2) {
-                            val key = keys[row * 3 + col]
-                            KeypadButton(key) {
-                                when (key) {
-                                    "⌫" -> { if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1) }
-                                    "OK" -> { if (viewModel.loginWithPin()) onLoginSuccess() }
-                                    else -> { if (viewModel.pin.length < 4) viewModel.pin += key }
-                                }
-                                // Auto-login removed: user must press OK explicitly
-                            }
-                        }
-                    }
-            }
-        }
-
-        Spacer(Modifier.height(48.dp))
-
-        // Prominent Password Option
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth(0.8f).height(48.dp).clickable { onSwitchToPassword() },
-            cornerRadius = 24.dp,
-            elevation = 4.dp
-        ) {
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Lock, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Login with Password", style = MaterialTheme.typography.labelLarge, color = Primary)
-            }
-        }
+        BlockButton(
+            text = "USE PASSWORD",
+            onClick = onSwitchToPassword,
+            modifier = Modifier.fillMaxWidth(),
+            isPrimary = false
+        )
     }
 }

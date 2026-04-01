@@ -1,26 +1,28 @@
 package com.example.spend_trend.ui.auth
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.Check
 
 @Composable
 fun PinSetupScreen(
@@ -37,120 +39,169 @@ fun PinSetupScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(Dimens.SpacingXxl)
                 .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = if (!isConfirming) "Set Your Quick PIN" else "Confirm Your PIN",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            )
-            Text(
-                text = if (!isConfirming) "Choose a 4-digit PIN to secure your account"
-                       else "Re-enter your PIN to confirm",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-
-            Spacer(Modifier.height(48.dp))
-
-            // Neumorphic Pin Dots Indicator
+            // ── Step indicator ──
             Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StepSquare(isActive = true, label = "1")
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(Dimens.BorderWidthStandard)
+                        .background(MaterialTheme.colorScheme.outline)
+                )
+                StepSquare(isActive = isConfirming, label = "2")
+            }
+
+            Spacer(Modifier.height(Dimens.SpacingHuge))
+
+            Text(
+                text = (if (!isConfirming) "SET QUICK PIN" else "CONFIRM PIN"),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = (if (!isConfirming) "CHOOSE A 4-DIGIT PIN TO SECURE YOUR ACCOUNT"
+                       else "RE-ENTER YOUR PIN TO CONFIRM"),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Black,
+                color = MonoGrayMedium,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(Dimens.Spacing3xl))
+
+            // ── PIN dots (as squares) ──
+            Row(
+                modifier = Modifier.padding(Dimens.SpacingLg),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
             ) {
                 val currentPin = if (!isConfirming) viewModel.pin else viewModel.confirmPin
                 repeat(4) { index ->
                     val isActive = currentPin.length > index
-                    NeumorphicCard(
-                        modifier = Modifier.size(20.dp),
-                        cornerRadius = 10.dp,
-                        elevation = if (isActive) 0.dp else 4.dp,
-                        isConcave = isActive,
-                        backgroundColor = if (isActive) Primary else MaterialTheme.colorScheme.background
-                    ) {
-                        // Card handles visual state
-                    }
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                            .background(if (isActive) Primary else MaterialTheme.colorScheme.surface)
+                    )
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(Dimens.SpacingHuge))
 
-            // Custom Layout for Numeric Keypad
+            // ── Keypad ──
             val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK")
-            
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 for (row in 0..3) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(bottom = 16.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
+                        modifier = Modifier.padding(vertical = Dimens.SpacingSm)
+                    ) {
                         for (col in 0..2) {
                             val key = keys[row * 3 + col]
-                            KeypadButton(key) {
-                                when (key) {
-                                    "⌫" -> {
-                                        if (isConfirming) {
-                                            if (viewModel.confirmPin.isNotEmpty()) viewModel.confirmPin = viewModel.confirmPin.dropLast(1)
-                                        } else {
-                                            if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1)
-                                        }
-                                    }
-                                    "OK" -> {
-                                        if (!isConfirming && viewModel.pin.length == 4) {
-                                            viewModel.error = null
-                                            isConfirming = true
-                                        } else if (isConfirming && viewModel.confirmPin.length == 4) {
-                                            if (viewModel.setPin()) {
-                                                onSetupComplete()
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                                    .clickable {
+                                        when (key) {
+                                            "⌫" -> {
+                                                if (isConfirming) {
+                                                    if (viewModel.confirmPin.isNotEmpty())
+                                                        viewModel.confirmPin = viewModel.confirmPin.dropLast(1)
+                                                } else {
+                                                    if (viewModel.pin.isNotEmpty())
+                                                        viewModel.pin = viewModel.pin.dropLast(1)
+                                                }
                                             }
-                                            // If setPin() returns false, error is shown below
+                                            "OK" -> {
+                                                if (!isConfirming && viewModel.pin.length == 4) {
+                                                    viewModel.error = null
+                                                    isConfirming = true
+                                                } else if (isConfirming && viewModel.confirmPin.length == 4) {
+                                                    if (viewModel.setPin()) {
+                                                        onSetupComplete()
+                                                    }
+                                                }
+                                            }
+                                            else -> {
+                                                if (!isConfirming) {
+                                                    if (viewModel.pin.length < 4) viewModel.pin += key
+                                                } else {
+                                                    if (viewModel.confirmPin.length < 4) viewModel.confirmPin += key
+                                                }
+                                            }
                                         }
                                     }
-                                    else -> {
-                                        if (!isConfirming) {
-                                            if (viewModel.pin.length < 4) viewModel.pin += key
-                                        } else {
-                                            if (viewModel.confirmPin.length < 4) viewModel.confirmPin += key
-                                        }
-                                    }
-                                }
-                                // NOTE: Auto-advance removed. User MUST press OK to proceed.
+                                    .background(if (key == "OK") Primary else MaterialTheme.colorScheme.surface),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = key,
+                                    fontWeight = FontWeight.Black,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = if (key == "OK") MonoWhite else MonoBlack
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // ── Back / Reset Button (Confirm Step) ──
+            // ── Back / Reset ──
             if (isConfirming) {
-                Spacer(Modifier.height(8.dp))
-                TextButton(
+                Spacer(Modifier.height(Dimens.SpacingLg))
+                BlockButton(
+                    text = "RE-ENTER PIN",
                     onClick = {
-                        // Reset both PINs and go back to first entry
                         viewModel.pin = ""
                         viewModel.confirmPin = ""
                         viewModel.error = null
                         isConfirming = false
-                    }
-                ) {
-                    Text(
-                        "↩ Re-enter PIN",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    isPrimary = false
+                )
             }
 
-            if (viewModel.error != null) {
+            // ── Error ──
+            AnimatedVisibility(visible = viewModel.error != null) {
                 Text(
-                    text = viewModel.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp),
+                    text = viewModel.error?.uppercase() ?: "",
+                    color = ExpenseRose,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(top = Dimens.SpacingLg),
                     textAlign = TextAlign.Center
                 )
             }
         }
     }
 }
+
+@Composable
+private fun StepSquare(isActive: Boolean, label: String) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .border(Dimens.BorderWidthStandard, if (isActive) Primary else MaterialTheme.colorScheme.outline)
+            .background(if (isActive) Primary else MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = if (isActive) MonoWhite else MonoBlack
+        )
+    }
+}
+
