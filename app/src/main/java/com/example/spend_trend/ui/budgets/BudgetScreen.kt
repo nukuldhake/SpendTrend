@@ -3,36 +3,36 @@ package com.example.spend_trend.ui.budgets
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.BudgetEntity
 import com.example.spend_trend.data.repository.BudgetRepository
-import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
 
 @Composable
 fun BudgetsScreen(
-    onCardClick: (Int) -> Unit = {},
-    onAddBudget: () -> Unit = {}
+    onCardClick: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: BudgetViewModel = viewModel(
@@ -52,65 +52,62 @@ fun BudgetsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MonoWhite)
             .padding(horizontal = Dimens.SpacingLg)
             .padding(vertical = Dimens.SpacingLg)
     ) {
         if (hasOverBudget) {
-        val overBudgetCategories = budgets.filter { it.currentSpent > it.monthlyLimit }
-        overBudgetCategories.forEach { overBudget ->
-            NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(ExpenseRose.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
+            val overBudgetCategories = budgets.filter { it.currentSpent > it.monthlyLimit }
+            overBudgetCategories.forEach { overBudget ->
+                BlockCard(modifier = Modifier.fillMaxWidth(), backgroundColor = ExpenseRose) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.WarningAmber,
-                            contentDescription = "Over budget warning",
-                            tint = ExpenseRose,
+                            Icons.Default.PriorityHigh,
+                            contentDescription = null,
+                            tint = MonoWhite,
                             modifier = Modifier.size(Dimens.IconMd)
                         )
+                        Spacer(Modifier.width(Dimens.SpacingMd))
+                        Text(
+                            "EXCEEDED: ${overBudget.category.uppercase()} BUDGET",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MonoWhite
+                        )
                     }
-                    Spacer(Modifier.width(Dimens.SpacingMd))
-                    Text(
-                        "You've exceeded your ${overBudget.category} budget this month",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = ExpenseRose
-                    )
                 }
+                Spacer(Modifier.height(Dimens.SpacingSm))
             }
             Spacer(Modifier.height(Dimens.SpacingSm))
         }
-        Spacer(Modifier.height(Dimens.SpacingSm))
-    }
 
         if (budgets.isEmpty()) {
-            // Empty state
             Spacer(Modifier.weight(1f))
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Default.Savings,
-                    contentDescription = "No budgets",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(Dimens.IconHero)
-                )
+                BlockCard(modifier = Modifier.size(120.dp), hasShadow = true) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = MonoBlack,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
                 Spacer(Modifier.height(Dimens.SpacingLg))
                 Text(
-                    "No budgets yet",
+                    "NO BUDGETS",
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.Black,
+                    color = MonoBlack
                 )
                 Text(
-                    "Tap + to create your first budget category",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    "TAP + TO INITIALIZE TRACKING",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MonoGrayMedium
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -124,7 +121,7 @@ fun BudgetsScreen(
                 itemsIndexed(budgets) { index, budget ->
                     val alpha by animateFloatAsState(
                         targetValue = if (visible) 1f else 0f,
-                        animationSpec = tween(durationMillis = 400, delayMillis = index * 80),
+                        animationSpec = tween(durationMillis = 400, delayMillis = index * 50),
                         label = "budget_card_alpha_$index"
                     )
                     Box(
@@ -132,7 +129,7 @@ fun BudgetsScreen(
                             .graphicsLayer { this.alpha = alpha }
                             .clickable { onCardClick(budget.id) }
                     ) {
-                        BudgetNeumorphicCard(budget)
+                        BudgetBlockCard(budget)
                     }
                 }
             }
@@ -141,17 +138,17 @@ fun BudgetsScreen(
 }
 
 @Composable
-private fun BudgetNeumorphicCard(budget: BudgetEntity) {
-    val progress = if (budget.monthlyLimit > 0) (budget.currentSpent / budget.monthlyLimit).coerceIn(0f, 1f) else 0f
+private fun BudgetBlockCard(budget: BudgetEntity) {
+    val progress = if (budget.monthlyLimit > 0) (budget.currentSpent.toFloat() / budget.monthlyLimit).coerceIn(0f, 1f) else 0f
     val remaining = (budget.monthlyLimit - budget.currentSpent).toInt()
 
     val statusColor = when {
         progress >= 1f -> ExpenseRose
         progress >= 0.8f -> WarningAmber
-        else -> Primary
+        else -> MonoBlack
     }
 
-    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+    BlockCard(modifier = Modifier.fillMaxWidth(), hasShadow = true) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -160,58 +157,73 @@ private fun BudgetNeumorphicCard(budget: BudgetEntity) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(CircleShape)
-                    .background(statusColor.copy(alpha = 0.10f)),
+                    .border(2.dp, MonoBlack)
+                    .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = categoryIcon(budget.category),
-                    contentDescription = "${budget.category} budget",
-                    tint = statusColor,
-                    modifier = Modifier.size(Dimens.IconMd)
+                    contentDescription = null,
+                    tint = MonoBlack,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
             Text(
-                budget.category,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                budget.category.uppercase(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Black,
+                color = MonoBlack
             )
 
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(80.dp),
-                color = statusColor,
-                trackColor = statusColor.copy(alpha = 0.10f),
-                strokeWidth = 8.dp,
-                strokeCap = StrokeCap.Round
-            )
+            // Stark Linear Progress instead of Circular for "Edgy" look
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .border(1.5.dp, MonoBlack)
+                    .padding(2.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(statusColor)
+                )
+            }
 
-            Text(
-                "${(progress * 100).toInt()}%",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "${(progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = statusColor
+                )
+                Text(
+                    "₹${budget.currentSpent.toInt().formatWithComma()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MonoBlack
+                )
+            }
 
-            Text(
-                "₹${budget.currentSpent.toInt().formatWithComma()} / ₹${budget.monthlyLimit.toInt().formatWithComma()}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
+            HorizontalDivider(thickness = 1.dp, color = MonoGrayLight)
 
             if (remaining > 0) {
                 Text(
-                    "₹${remaining.formatWithComma()} left",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = statusColor
+                    "₹${remaining.formatWithComma()} LEFT",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MonoGrayMedium
                 )
-            } else if (remaining < 0) {
+            } else {
                 Text(
-                    "₹${(-remaining).formatWithComma()} over",
-                    style = MaterialTheme.typography.labelMedium,
+                    "LIMIT EXCEEDED",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
                     color = ExpenseRose
                 )
             }

@@ -1,27 +1,27 @@
 package com.example.spend_trend.ui.budgets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
 
 @Composable
@@ -46,39 +46,45 @@ fun AddBudgetScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MonoWhite)
+            .statusBarsPadding()
             .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        NeumorphicTopBar(title = "Add Budget", onBack = onBack)
+        BlockTopBar(
+            title = "ADD BUDGET",
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MonoBlack)
+                }
+            }
+        )
 
         // ── Category Picker ──
         Text(
-            "Choose a category",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            "CHOOSE CATEGORY",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Black,
+            color = MonoBlack
         )
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
+            columns = GridCells.Adaptive(minSize = 100.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
             modifier = Modifier.heightIn(max = 260.dp)
         ) {
             items(predefinedCategories) { cat ->
                 val isSelected = !useCustom && selectedCategory == cat
-                NeumorphicCard(
+                val itemColor = if (isSelected) MonoWhite else MonoBlack
+                BlockCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             useCustom = false
                             selectedCategory = cat
                         },
-                    isConcave = isSelected,
-                    backgroundColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
-                    elevation = if (isSelected) 0.dp else 4.dp,
-                    cornerRadius = Dimens.RadiusMd
+                    backgroundColor = if (isSelected) MonoBlack else MonoWhite
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = Dimens.SpacingMd),
@@ -87,14 +93,15 @@ fun AddBudgetScreen(
                         Icon(
                             categoryIcon(cat),
                             contentDescription = "$cat category",
-                            tint = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = itemColor,
                             modifier = Modifier.size(Dimens.IconMd)
                         )
                         Spacer(Modifier.height(Dimens.SpacingXs))
                         Text(
-                            cat,
+                            cat.uppercase(),
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = FontWeight.Black,
+                            color = itemColor
                         )
                     }
                 }
@@ -102,45 +109,63 @@ fun AddBudgetScreen(
         }
 
         // ── Custom Category ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = useCustom,
-                onCheckedChange = { useCustom = it },
-                colors = CheckboxDefaults.colors(checkedColor = Primary)
-            )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(if (useCustom) MonoBlack else MonoWhite)
+                .border(2.dp, MonoBlack)
+                .clickable { useCustom = !useCustom }
+                .padding(Dimens.SpacingMd)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .border(2.dp, if (useCustom) MonoWhite else MonoBlack)
+                    .background(if (useCustom) MonoWhite else Color.Transparent),
+                contentAlignment = Alignment.Center
+            ) {
+                if (useCustom) {
+                    Icon(Icons.Default.Check, null, tint = MonoBlack, modifier = Modifier.size(16.dp))
+                }
+            }
+            Spacer(Modifier.width(Dimens.SpacingMd))
             Text(
-                "Custom category",
+                "CUSTOM CATEGORY",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                fontWeight = FontWeight.Black,
+                color = if (useCustom) MonoWhite else MonoBlack
             )
         }
 
         if (useCustom) {
-            NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+            BlockCard {
                 TextField(
                     value = customCategory,
                     onValueChange = { customCategory = it },
-                    label = { Text("Category name") },
-                    leadingIcon = { Icon(Icons.Default.Category, "Category") },
+                    placeholder = { Text("CATEGORY NAME", fontWeight = FontWeight.Black) },
+                    leadingIcon = { Icon(Icons.Default.Category, null, tint = MonoBlack) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = MonoBlack,
+                        unfocusedTextColor = MonoBlack
                     )
                 )
             }
         }
 
         // ── Budget Limit ──
-        NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+        BlockCard {
             TextField(
                 value = limitText,
                 onValueChange = { limitText = it.filter { c -> c.isDigit() } },
-                label = { Text("Monthly limit (₹)") },
-                leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
+                placeholder = { Text("MONTHLY LIMIT (₹)", fontWeight = FontWeight.Black) },
+                leadingIcon = { Text("₹", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MonoBlack) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -148,7 +173,9 @@ fun AddBudgetScreen(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = MonoBlack,
+                    unfocusedTextColor = MonoBlack
                 )
             )
         }
@@ -156,22 +183,29 @@ fun AddBudgetScreen(
         Spacer(Modifier.weight(1f))
 
         // ── Save Button ──
-        Button(
-            onClick = {
-                if (isValid && category != null) {
-                    viewModel.addBudget(category, limitValue)
-                    onBack()
-                }
-            },
-            enabled = isValid,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = Primary),
-            shape = RoundedCornerShape(Dimens.RadiusMd),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 0.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(if (isValid) MonoBlack else MonoGrayLight)
+                .border(2.dp, MonoBlack)
+                .clickable(enabled = isValid) {
+                    if (category != null) {
+                        viewModel.addBudget(category, limitValue)
+                        onBack()
+                    }
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Check, "Save")
-            Spacer(Modifier.width(Dimens.SpacingSm))
-            Text("Create Budget", fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Check, null, tint = if (isValid) MonoWhite else MonoGrayMedium)
+                Spacer(Modifier.width(Dimens.SpacingSm))
+                Text(
+                    "CREATE BUDGET",
+                    fontWeight = FontWeight.Black,
+                    color = if (isValid) MonoWhite else MonoGrayMedium
+                )
+            }
         }
 
         Spacer(Modifier.height(Dimens.SpacingHuge))

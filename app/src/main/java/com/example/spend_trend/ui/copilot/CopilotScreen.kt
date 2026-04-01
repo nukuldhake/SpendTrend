@@ -3,19 +3,21 @@ package com.example.spend_trend.ui.copilot
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -25,9 +27,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.BudgetRepository
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.theme.*
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun CopilotScreen() {
@@ -42,68 +45,71 @@ fun CopilotScreen() {
     var inputText by remember { mutableStateOf("") }
     val messages = viewModel.messages
     val isTyping = viewModel.isTyping
+    val listState = rememberLazyListState()
+
+
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // ── Neumorphic Header ──
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth().height(80.dp),
-            cornerRadius = 0.dp,
-            elevation = 4.dp
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingLg),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Primary, Secondary)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "AI",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.width(Dimens.SpacingMd))
-                Column {
-                    Text(
-                        "SpendTrend Copilot",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        "AI financial assistant",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
         // ── Messages ──
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            contentPadding = PaddingValues(bottom = Dimens.SpacingLg),
-            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
-            reverseLayout = false
+                .weight(1f)
+                .padding(horizontal = Dimens.SpacingLg),
+            state = listState,
+            contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
+            // Welcome message if empty
+            if (messages.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.SpacingHuge),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        BlockCard(
+                            modifier = Modifier.size(64.dp),
+                            backgroundColor = Primary
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    "AI",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Black,
+                                    color = MonoWhite
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(Dimens.SpacingLg))
+                        Text(
+                            "SPENDTREND COPILOT",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "ASK ME ABOUT YOUR SPENDING, BUDGETS, OR FINANCIAL TIPS",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MonoGrayMedium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            }
+
             items(messages) { msg ->
-                NeumorphicChatBubble(msg)
+                ChatBubble(msg)
             }
 
             if (isTyping) {
@@ -111,97 +117,94 @@ fun CopilotScreen() {
             }
         }
 
-        // ── Neumorphic Input Bar ──
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth().height(88.dp).padding(Dimens.SpacingSm),
-            cornerRadius = 44.dp,
-            elevation = 6.dp
+        // ── Input Bar ──
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .navigationBarsPadding()
         ) {
+            Box(Modifier.fillMaxWidth().height(Dimens.DividerThickness).background(MaterialTheme.colorScheme.outline))
             Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.SpacingMd),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimens.SpacingMd),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                NeumorphicCard(
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    isConcave = true,
-                    backgroundColor = MaterialTheme.colorScheme.background,
-                    cornerRadius = 24.dp
-                ) {
-                    TextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        placeholder = {
-                            Text(
-                                "Ask about your money...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    placeholder = {
+                        Text(
+                            "ASK ABOUT YOUR MONEY...",
+                            color = MonoGrayMedium,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black
                         )
+                    },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = MonoGrayLight,
+                        cursorColor = MonoBlack
                     )
-                }
+                )
 
                 Spacer(Modifier.width(Dimens.SpacingSm))
 
-                IconButton(
-                    onClick = {
-                        if (inputText.isNotBlank()) {
-                            viewModel.sendMessage(inputText.trim())
-                            inputText = ""
-                        }
-                    },
-                    enabled = inputText.isNotBlank(),
+                Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(if (inputText.isNotBlank()) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .size(56.dp)
+                        .background(if (inputText.isNotBlank()) Primary else MonoGrayLight)
+                        .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                        .clickable(enabled = inputText.isNotBlank()) {
+                            if (inputText.isNotBlank()) {
+                                viewModel.sendMessage(inputText.trim())
+                                inputText = ""
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Send,
+                        Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
-                        tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(20.dp)
+                        tint = if (inputText.isNotBlank()) MonoWhite else MonoBlack.copy(alpha = 0.3f),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
         }
-        
-        Spacer(Modifier.height(Dimens.BottomNavClearance))
     }
 }
 
 @Composable
-private fun NeumorphicChatBubble(message: ChatMessage) {
+private fun ChatBubble(message: ChatMessage) {
     val isUser = message.isUser
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.SpacingLg),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
-        NeumorphicCard(
-            modifier = Modifier.widthIn(max = 280.dp),
-            isConcave = false, // Flat surface for both — AI bubbles need readable text, not shadow-obscured text
-            elevation = if (isUser) 4.dp else 2.dp,
-            cornerRadius = 16.dp,
-            backgroundColor = if (isUser) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+        BlockCard(
+            modifier = Modifier.widthIn(max = 300.dp),
+            backgroundColor = if (isUser) MaterialTheme.colorScheme.surface else MonoBlack,
+            borderColor = MaterialTheme.colorScheme.outline
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column {
                 Text(
-                    message.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (isUser) Primary else MaterialTheme.colorScheme.onSurface
+                    message.text.uppercase(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Black,
+                    color = if (isUser) MaterialTheme.colorScheme.onSurface else MonoWhite,
+                    lineHeight = 18.sp
                 )
-                Spacer(Modifier.height(Dimens.SpacingXs))
+                Spacer(Modifier.height(Dimens.SpacingSm))
                 Text(
                     message.time,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    fontWeight = FontWeight.Black,
+                    color = (if (isUser) MonoGrayLight else MonoGrayMedium),
                     modifier = Modifier.align(Alignment.End)
                 )
             }
@@ -214,13 +217,13 @@ private fun PulsingTypingIndicator() {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
 
     Row(
-        modifier = Modifier.padding(start = Dimens.SpacingXxl, top = Dimens.SpacingSm),
+        modifier = Modifier.padding(top = Dimens.SpacingSm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingXs)
     ) {
         repeat(3) { index ->
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 0.3f,
+            val sizeScale by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(600, delayMillis = index * 200),
@@ -229,19 +232,18 @@ private fun PulsingTypingIndicator() {
                 label = "dot_$index"
             )
 
-            // Lightweight Box instead of NeumorphicCard — no GPU shadow recalculation per frame
             Box(
                 modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = alpha))
+                    .size(10.dp)
+                    .background(MonoBlack.copy(alpha = sizeScale))
             )
         }
         Spacer(Modifier.width(Dimens.SpacingSm))
         Text(
-            "Copilot is thinking…",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            "COPILOT IS THINKING…",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = MonoGrayMedium
         )
     }
 }

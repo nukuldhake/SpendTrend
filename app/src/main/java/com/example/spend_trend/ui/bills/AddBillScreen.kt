@@ -1,26 +1,27 @@
 package com.example.spend_trend.ui.bills
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
 import java.time.Instant
 import java.time.LocalDate
@@ -53,16 +54,17 @@ fun AddBillScreen(
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
+            shape = androidx.compose.ui.graphics.RectangleShape,
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         dueDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text("OK", fontWeight = FontWeight.Black, color = MonoBlack) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text("CANCEL", fontWeight = FontWeight.Black, color = MonoGrayMedium) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -72,38 +74,47 @@ fun AddBillScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MonoWhite)
+            .statusBarsPadding()
             .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        NeumorphicTopBar(title = "Add Bill", onBack = onBack)
+        BlockTopBar(
+            title = "REGISTER BILL",
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MonoBlack)
+                }
+            }
+        )
 
         // ── Title Input ──
-        NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+        BlockCard {
             TextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Bill Title") },
-                placeholder = { Text("e.g. Electricity Bill") },
-                leadingIcon = { Icon(Icons.Default.Title, "Title") },
+                placeholder = { Text("BILL TITLE", fontWeight = FontWeight.Black) },
+                leadingIcon = { Icon(Icons.Default.Title, null, tint = MonoBlack) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                    unfocusedIndicatorColor = Color.Transparent
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = MonoBlack,
+                    unfocusedTextColor = MonoBlack
                 )
             )
         }
 
         // ── Amount Input ──
-        NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+        BlockCard {
             TextField(
                 value = amountText,
                 onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-                label = { Text("Amount (₹)") },
-                leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
+                placeholder = { Text("AMOUNT (₹)", fontWeight = FontWeight.Black) },
+                leadingIcon = { Text("₹", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MonoBlack) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -111,61 +122,68 @@ fun AddBillScreen(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = MonoBlack,
+                    unfocusedTextColor = MonoBlack
                 )
             )
         }
 
         // ── Date Picker Field ──
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth().height(64.dp).clickable { showDatePicker = true },
-            isConcave = true,
-            backgroundColor = MaterialTheme.colorScheme.background
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(MonoWhite)
+                .border(2.dp, MonoBlack)
+                .clickable { showDatePicker = true },
+            contentAlignment = Alignment.CenterStart
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.DateRange, "Date", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.DateRange, null, tint = MonoBlack)
                 Spacer(Modifier.width(Dimens.SpacingMd))
                 Column {
-                    Text("Due Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(dueDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")), style = MaterialTheme.typography.bodyLarge)
+                    Text("DUE DATE", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MonoGrayMedium)
+                    Text(
+                        dueDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")).uppercase(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MonoBlack
+                    )
                 }
             }
         }
 
         Text(
-            "Category",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = Dimens.SpacingSm)
+            "CATEGORY",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Black,
+            color = MonoBlack
         )
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(minSize = 120.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd),
             modifier = Modifier.heightIn(max = 240.dp)
         ) {
             items(predefinedCategories) { cat ->
                 val isSelected = selectedCategory == cat
-                NeumorphicCard(
+                BlockCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { selectedCategory = cat },
-                    isConcave = isSelected,
-                    elevation = if (isSelected) 0.dp else 4.dp,
-                    backgroundColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
-                    cornerRadius = Dimens.RadiusMd
+                    backgroundColor = if (isSelected) MonoBlack else MonoWhite
                 ) {
                     Box(Modifier.fillMaxSize().padding(Dimens.SpacingMd), contentAlignment = Alignment.Center) {
                         Text(
-                            cat,
+                            cat.uppercase(),
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = FontWeight.Black,
+                            color = if (isSelected) MonoWhite else MonoBlack
                         )
                     }
                 }
@@ -175,21 +193,26 @@ fun AddBillScreen(
         Spacer(Modifier.weight(1f))
 
         // ── Register Button ──
-        Button(
-            onClick = {
-                if (isValid && selectedCategory != null) {
-                    val millis = dueDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    viewModel.addBill(title, amount, selectedCategory!!, millis)
-                    onBack()
-                }
-            },
-            enabled = isValid,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = Primary),
-            shape = RoundedCornerShape(Dimens.RadiusMd),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 0.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(if (isValid) MonoBlack else MonoGrayLight)
+                .border(2.dp, MonoBlack)
+                .clickable(enabled = isValid) {
+                    if (selectedCategory != null) {
+                        val millis = dueDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        viewModel.addBill(title, amount, selectedCategory!!, millis)
+                        onBack()
+                    }
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Text("Register Bill", fontWeight = FontWeight.Bold)
+            Text(
+                "REGISTER BILL",
+                fontWeight = FontWeight.Black,
+                color = if (isValid) MonoWhite else MonoGrayMedium
+            )
         }
         
         Spacer(Modifier.height(Dimens.SpacingHuge))

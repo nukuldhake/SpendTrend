@@ -4,15 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
@@ -47,200 +48,200 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
+            .background(MaterialTheme.colorScheme.background),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        NeumorphicTopBar(title = "Settings", onBack = onBack)
-
-        Text("Automation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Primary)
-
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(Dimens.SpacingMd)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Auto-track transactions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Read bank SMS & emails", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-                        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-                    ) { permissions ->
-                        val granted = permissions.getOrDefault(android.Manifest.permission.RECEIVE_SMS, false)
-                        ThemePreferences.updateAutoTracking(granted)
-                    }
-
-                    Switch(
-                        checked = ThemePreferences.autoTrackingEnabled, 
-                        onCheckedChange = { isChecked ->
-                            if (isChecked) {
-                                launcher.launch(arrayOf(
-                                    android.Manifest.permission.RECEIVE_SMS,
-                                    android.Manifest.permission.READ_SMS
-                                ))
-                            } else {
-                                ThemePreferences.updateAutoTracking(false)
-                            }
-                        }, 
-                        colors = SwitchDefaults.colors(checkedTrackColor = Primary)
-                    )
-                }
-                
-                Spacer(Modifier.height(Dimens.SpacingLg))
-                
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Notifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Budget limits & unusual spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it }, colors = SwitchDefaults.colors(checkedTrackColor = Primary))
-                }
-
-                if (notificationsEnabled) {
-                    Spacer(Modifier.height(Dimens.SpacingLg))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
-                    Spacer(Modifier.height(Dimens.SpacingLg))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Warning Threshold", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                            Text("${ThemePreferences.lowThreshold}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, color = Primary)
-                        }
-                        Slider(
-                            value = ThemePreferences.lowThreshold.toFloat(),
-                            onValueChange = { ThemePreferences.updateThresholds(it.toInt(), ThemePreferences.highThreshold) },
-                            valueRange = 50f..100f,
-                            steps = 9,
-                            colors = SliderDefaults.colors(thumbColor = Primary, activeTrackColor = Primary)
-                        )
-
-                        Spacer(Modifier.height(Dimens.SpacingXs))
-
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Critical Threshold", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                            Text("${ThemePreferences.highThreshold}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, color = ExpenseRose)
-                        }
-                        Slider(
-                            value = ThemePreferences.highThreshold.toFloat(),
-                            onValueChange = { ThemePreferences.updateThresholds(ThemePreferences.lowThreshold, it.toInt()) },
-                            valueRange = 80f..150f,
-                            steps = 13,
-                            colors = SliderDefaults.colors(thumbColor = ExpenseRose, activeTrackColor = ExpenseRose)
-                        )
-                    }
+        BlockTopBar(
+            title = "SETTINGS",
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
-        }
+        )
 
-        Text("Preferences", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Primary)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+        ) {
+            Spacer(Modifier.height(Dimens.SpacingSm))
 
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(Dimens.SpacingMd)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Currency", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    var expanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                        OutlinedTextField(
-                            value = selectedCurrency, onValueChange = {}, readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier.width(120.dp).menuAnchor(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
+            Text("AUTOMATION", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+
+            BlockCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(Dimens.SpacingXs)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f)) {
+                            Text("AUTO-TRACK", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
+                            Text("READ BANK SMS & EMAILS", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                        }
+                        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+                        ) { permissions ->
+                            val granted = permissions.getOrDefault(android.Manifest.permission.RECEIVE_SMS, false)
+                            ThemePreferences.updateAutoTracking(granted)
+                        }
+
+                        Switch(
+                            checked = ThemePreferences.autoTrackingEnabled, 
+                            onCheckedChange = { isChecked ->
+                                if (isChecked) {
+                                    launcher.launch(arrayOf(
+                                        android.Manifest.permission.RECEIVE_SMS,
+                                        android.Manifest.permission.READ_SMS
+                                    ))
+                                } else {
+                                    ThemePreferences.updateAutoTracking(false)
+                                }
+                            }, 
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MonoWhite,
+                                checkedTrackColor = Primary,
+                                uncheckedThumbColor = MonoGrayLight,
+                                uncheckedTrackColor = MonoGrayLight
                             )
                         )
-                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            listOf("INR", "USD", "EUR", "GBP").forEach { currency ->
-                                DropdownMenuItem(text = { Text(currency) }, onClick = { selectedCurrency = currency; expanded = false })
-                            }
-                        }
                     }
-                }
-                
-                Spacer(Modifier.height(Dimens.SpacingXxl))
-                
-                NeumorphicCard(
-                    modifier = Modifier.fillMaxWidth().height(56.dp).clickable {
-                        coroutineScope.launch {
-                            viewModel.exportToCsv(context)
+                    
+                    Spacer(Modifier.height(Dimens.SpacingLg))
+                    
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f)) {
+                            Text("NOTIFICATIONS", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
+                            Text("BUDGET LIMITS & SPENDING", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
                         }
-                    },
-                    cornerRadius = 28.dp,
-                    elevation = 4.dp
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Download, "Export CSV", tint = Primary)
-                        Spacer(Modifier.width(Dimens.SpacingSm))
-                        Text("Export Data (CSV)", fontWeight = FontWeight.Black, color = Primary)
+                        Switch(
+                            checked = notificationsEnabled, 
+                            onCheckedChange = { notificationsEnabled = it }, 
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MonoWhite,
+                                checkedTrackColor = Primary
+                            )
+                        )
+                    }
+
+                    if (notificationsEnabled) {
+                        Spacer(Modifier.height(Dimens.SpacingLg))
+                        HorizontalDivider(thickness = Dimens.DividerThickness, color = MonoGrayLight)
+                        Spacer(Modifier.height(Dimens.SpacingLg))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("WARNING THRESHOLD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                                Text("${ThemePreferences.lowThreshold}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Slider(
+                                value = ThemePreferences.lowThreshold.toFloat(),
+                                onValueChange = { ThemePreferences.updateThresholds(it.toInt(), ThemePreferences.highThreshold) },
+                                valueRange = 50f..100f,
+                                steps = 9,
+                                colors = SliderDefaults.colors(thumbColor = Primary, activeTrackColor = Primary, inactiveTrackColor = MonoGrayLight)
+                            )
+
+                            Spacer(Modifier.height(Dimens.SpacingXs))
+
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("CRITICAL THRESHOLD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                                Text("${ThemePreferences.highThreshold}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = ExpenseRose)
+                            }
+                            Slider(
+                                value = ThemePreferences.highThreshold.toFloat(),
+                                onValueChange = { ThemePreferences.updateThresholds(ThemePreferences.lowThreshold, it.toInt()) },
+                                valueRange = 80f..150f,
+                                steps = 13,
+                                colors = SliderDefaults.colors(thumbColor = ExpenseRose, activeTrackColor = ExpenseRose, inactiveTrackColor = MonoGrayLight)
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Text("Cloud Sync", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Primary)
+            Text("PREFERENCES", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
 
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(Dimens.SpacingMd)) {
-                if (user != null) {
-                    Text("Linked to: ${user.email}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(Dimens.SpacingMd))
+            BlockCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(Dimens.SpacingXs)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("CURRENCY", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
+                        var expanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+                            OutlinedTextField(
+                                value = selectedCurrency, onValueChange = {}, readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                modifier = Modifier.width(120.dp).menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                                shape = RectangleShape,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Primary,
+                                    unfocusedBorderColor = MonoGrayLight,
+                                    focusedLabelColor = MonoBlack
+                                )
+                            )
+                            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                listOf("INR", "USD", "EUR", "GBP").forEach { currency ->
+                                    DropdownMenuItem(text = { Text(currency) }, onClick = { selectedCurrency = currency; expanded = false })
+                                }
+                            }
+                        }
+                    }
                     
-                    NeumorphicCard(
-                        modifier = Modifier.fillMaxWidth().height(56.dp).clickable {
+                    Spacer(Modifier.height(Dimens.SpacingLg))
+                    
+                    BlockButton(
+                        text = "EXPORT DATA (CSV)",
+                        onClick = {
                             coroutineScope.launch {
-                                // For now, sync is automatic on each change. 
-                                // A full sync to Supabase can be implemented here if needed.
-                                Toast.makeText(context, "Cloud sync is active!", Toast.LENGTH_SHORT).show()
+                                viewModel.exportToCsv(context)
                             }
                         },
-                        cornerRadius = 28.dp,
-                        elevation = 4.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.CloudSync, "Sync Active", tint = Primary)
-                            Spacer(Modifier.width(Dimens.SpacingSm))
-                            Text("Cloud Sync Active", fontWeight = FontWeight.Black, color = Primary)
-                        }
-                    }
-                } else {
-                    Text("Please sign in to enable cloud sync.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        modifier = Modifier.fillMaxWidth(),
+                        isPrimary = false
+                    )
                 }
             }
-        }
 
-        Spacer(Modifier.weight(1f))
-        
-        if (user != null) {
-            NeumorphicCard(
-                modifier = Modifier.fillMaxWidth().height(56.dp).clickable {
-                    coroutineScope.launch {
-                        auth.signOut()
-                        UserPreferences.setLoggedIn(false)
-                        onBack()
+            Text("CLOUD SYNC", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+
+            BlockCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(Dimens.SpacingXs)) {
+                    if (user != null) {
+                        Text("LINKED: ${user.email?.uppercase()}", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                        Spacer(Modifier.height(Dimens.SpacingMd))
+                        
+                        BlockButton(
+                            text = "SYNC NOW",
+                            onClick = {
+                                coroutineScope.launch {
+                                    Toast.makeText(context, "CLOUD SYNC ACTIVE", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            isPrimary = true
+                        )
+                    } else {
+                        Text("SIGN IN TO ENABLE CLOUD SYNC", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
                     }
-                },
-                backgroundColor = ExpenseRose.copy(alpha = 0.1f),
-                cornerRadius = 28.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Logout, "Logout", tint = ExpenseRose)
-                    Spacer(Modifier.width(Dimens.SpacingSm))
-                    Text("Logout", fontWeight = FontWeight.Bold, color = ExpenseRose)
                 }
             }
+
+            Spacer(Modifier.weight(1f))
+            
+            if (user != null) {
+                BlockButton(
+                    text = "LOGOUT",
+                    onClick = {
+                        coroutineScope.launch {
+                            auth.signOut()
+                            UserPreferences.setLoggedIn(false)
+                            onBack()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    isPrimary = true
+                )
+            }
+            Spacer(Modifier.height(Dimens.SpacingXl))
         }
     }
 }
+

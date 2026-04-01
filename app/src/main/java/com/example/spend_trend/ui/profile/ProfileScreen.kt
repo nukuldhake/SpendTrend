@@ -1,24 +1,22 @@
 package com.example.spend_trend.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.data.UserPreferences
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.components.*
 import com.example.spend_trend.ui.theme.*
 import java.time.Instant
 import java.time.ZoneId
@@ -31,8 +29,8 @@ fun ProfileScreen(
     onLogout: () -> Unit = {}
 ) {
     var isEditingName by remember { mutableStateOf(false) }
-    var userName by remember { mutableStateOf(UserPreferences.getName() ?: "User") }
-    val userEmail = UserPreferences.getEmail() ?: "user@example.com"
+    var userName by remember { mutableStateOf(UserPreferences.getName() ?: "USER") }
+    val userEmail = UserPreferences.getEmail() ?: "USER@SPENDTREND.AI"
     
     val memberSinceMillis = UserPreferences.getMemberSinceMillis()
     val memberSinceDate = try {
@@ -40,26 +38,33 @@ fun ProfileScreen(
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
             .format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+            .uppercase()
     } catch (e: Exception) {
-        "March 2026"
+        "MARCH 2026"
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
+            .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        NeumorphicTopBar(title = "Profile", onBack = onBack)
+        BlockTopBar(
+            title = "PROFILE",
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        )
         
-        Spacer(Modifier.height(Dimens.SpacingXxl))
+        Spacer(Modifier.height(Dimens.SpacingHuge))
         
-        // ── Neumorphic Avatar ──
-        NeumorphicCard(
+        // ── Noir Block Avatar ──
+        BlockCard(
             modifier = Modifier.size(120.dp),
-            cornerRadius = 60.dp,
-            elevation = 12.dp
+            hasShadow = true,
+            shadowColor = Primary
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -67,9 +72,9 @@ fun ProfileScreen(
             ) {
                 Text(
                     userName.firstOrNull()?.uppercase() ?: "U",
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Black,
-                    color = Primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -79,27 +84,19 @@ fun ProfileScreen(
         if (isEditingName) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = Dimens.SpacingMd)
+                modifier = Modifier.padding(horizontal = Dimens.SpacingLg)
             ) {
-                NeumorphicCard(
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    isConcave = true,
-                    backgroundColor = MaterialTheme.colorScheme.background,
-                    cornerRadius = 28.dp
-                ) {
-                    TextField(
-                        value = userName,
-                        onValueChange = { userName = it },
-                        modifier = Modifier.fillMaxSize(),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+                OutlinedTextField(
+                    value = userName,
+                    onValueChange = { userName = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = MonoGrayLight
                     )
-                }
+                )
                 Spacer(Modifier.width(Dimens.SpacingMd))
                 IconButton(onClick = { 
                     if (userName.isNotBlank()) {
@@ -108,64 +105,61 @@ fun ProfileScreen(
                     }
                     isEditingName = false 
                 }) {
-                    Icon(Icons.Default.Check, "Save", tint = Primary)
+                    Icon(Icons.Default.CheckCircle, "Save", tint = Primary)
                 }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    userName, 
+                    userName.uppercase(), 
                     style = MaterialTheme.typography.headlineMedium, 
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(onClick = { isEditingName = true }) {
-                    Icon(Icons.Default.Edit, "Edit name", tint = Primary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Edit, "Edit name", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                 }
             }
         }
 
         Text(
-            userEmail, 
-            style = MaterialTheme.typography.bodyLarge, 
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            userEmail.uppercase(), 
+            style = MaterialTheme.typography.labelSmall, 
+            color = MonoGrayMedium
         )
 
         Spacer(Modifier.height(Dimens.SpacingHuge))
 
-        // ── Info Cards ──
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.padding(Dimens.SpacingMd),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(Primary.copy(alpha = 0.10f)),
-                    contentAlignment = Alignment.Center
-                ) { Icon(Icons.Default.CalendarToday, "Member since", tint = Primary, modifier = Modifier.size(20.dp)) }
-                Spacer(Modifier.width(Dimens.SpacingMd))
-                Column {
-                    Text("Member since", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(memberSinceDate, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        // ── Info Blocks ──
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+        ) {
+            BlockCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(32.dp).border(Dimens.BorderWidthThin, MaterialTheme.colorScheme.outline).padding(6.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Icon(Icons.Default.CalendarMonth, null, tint = MaterialTheme.colorScheme.onSurface) }
+                    Spacer(Modifier.width(Dimens.SpacingMd))
+                    Column {
+                        Text("MEMBER SINCE", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                        Text(memberSinceDate, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black)
+                    }
                 }
             }
-        }
 
-        Spacer(Modifier.height(Dimens.SpacingMd))
-
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.padding(Dimens.SpacingMd),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(Secondary.copy(alpha = 0.10f)),
-                    contentAlignment = Alignment.Center
-                ) { Icon(Icons.Default.Security, "Security", tint = Secondary, modifier = Modifier.size(20.dp)) }
-                Spacer(Modifier.width(Dimens.SpacingMd))
-                Column {
-                    Text("Session Status", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Active (Secure)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            BlockCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(32.dp).border(Dimens.BorderWidthThin, MaterialTheme.colorScheme.outline).padding(6.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Icon(Icons.Default.Shield, null, tint = Primary) }
+                    Spacer(Modifier.width(Dimens.SpacingMd))
+                    Column {
+                        Text("SECURITY STATUS", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                        Text("ACTIVE (ENCRYPTED)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black)
+                    }
                 }
             }
         }
@@ -173,23 +167,16 @@ fun ProfileScreen(
         Spacer(Modifier.weight(1f))
 
         // ── Logout Button ──
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth().height(56.dp).clickable {
-                UserPreferences.logout()
-                onLogout()
-            },
-            cornerRadius = 28.dp,
-            elevation = 4.dp
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Logout, "Log out", tint = ExpenseRose)
-                Spacer(Modifier.width(Dimens.SpacingSm))
-                Text("Log Out", color = ExpenseRose, fontWeight = FontWeight.Black)
-            }
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.SpacingLg)) {
+            BlockButton(
+                text = "SYSTEM LOGOUT",
+                onClick = {
+                    UserPreferences.logout()
+                    onLogout()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                isPrimary = true
+            )
         }
 
         Spacer(Modifier.height(Dimens.SpacingHuge))

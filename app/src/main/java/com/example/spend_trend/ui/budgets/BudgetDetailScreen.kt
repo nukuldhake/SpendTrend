@@ -1,25 +1,26 @@
 package com.example.spend_trend.ui.budgets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.data.BudgetEntity
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicTopBar
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,7 +38,7 @@ fun BudgetDetailScreen(
 
     if (budget == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Primary)
+            CircularProgressIndicator(color = MonoBlack)
         }
         return
     }
@@ -48,22 +49,30 @@ fun BudgetDetailScreen(
     val statusColor = when {
         progress >= 1f -> ExpenseRose
         progress >= 0.8f -> WarningAmber
-        else -> Primary
+        else -> MonoBlack
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MonoWhite)
+            .statusBarsPadding()
             .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        NeumorphicTopBar(title = b.category, onBack = onBack)
+        BlockTopBar(
+            title = b.category.uppercase(),
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MonoBlack)
+                }
+            }
+        )
 
-        // ── Neumorphic Hero Card ──
-        NeumorphicCard(
+        // ── Block Hero Card ──
+        BlockCard(
             modifier = Modifier.fillMaxWidth(),
-            elevation = 12.dp,
-            cornerRadius = Dimens.RadiusLg
+            backgroundColor = MonoBlack
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -72,14 +81,13 @@ fun BudgetDetailScreen(
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+                        .background(MonoWhite),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         categoryIcon(b.category),
                         contentDescription = "${b.category} icon",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MonoBlack,
                         modifier = Modifier.size(Dimens.IconLg)
                     )
                 }
@@ -89,38 +97,50 @@ fun BudgetDetailScreen(
                 Text(
                     "₹${b.monthlyLimit.toInt().formatWithComma()}",
                     style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Black,
+                    color = MonoWhite
                 )
                 Text(
-                    "Monthly budget",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "MONTHLY BUDGET",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MonoGrayMedium
                 )
             }
         }
 
         // ── Progress Card ──
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+        BlockCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
             ) {
-                CircularProgressIndicator(
-                    progress = { progress },
+                Box(
                     modifier = Modifier.size(120.dp),
-                    color = statusColor,
-                    trackColor = statusColor.copy(alpha = 0.10f),
-                    strokeWidth = 10.dp,
-                    strokeCap = StrokeCap.Round
-                )
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxSize(),
+                        color = statusColor,
+                        trackColor = MonoGrayLight,
+                        strokeWidth = 12.dp,
+                        strokeCap = StrokeCap.Butt
+                    )
+                    Text(
+                        "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MonoBlack
+                    )
+                }
 
                 Text(
-                    "${(progress * 100).toInt()}% used",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = statusColor
+                    "USED PROGRESS",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Black,
+                    color = MonoGrayMedium
                 )
 
                 Row(
@@ -128,15 +148,15 @@ fun BudgetDetailScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Spent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("₹${b.currentSpent.toInt().formatWithComma()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ExpenseRose)
+                        Text("SPENT", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MonoGrayMedium)
+                        Text("₹${b.currentSpent.toInt().formatWithComma()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = ExpenseRose)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Remaining", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("REMAINING", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MonoGrayMedium)
                         Text(
                             if (remaining >= 0) "₹${remaining.formatWithComma()}" else "−₹${(-remaining).formatWithComma()}",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             color = if (remaining >= 0) IncomeGreen else ExpenseRose
                         )
                     }
@@ -144,44 +164,58 @@ fun BudgetDetailScreen(
             }
         }
 
+        Spacer(Modifier.weight(1f))
+
         // ── Edit Budget Button ──
-        Button(
-            onClick = {
-                newLimitText = b.monthlyLimit.toInt().toString()
-                showEditSheet = true
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = Primary),
-            shape = RoundedCornerShape(Dimens.RadiusMd),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 0.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(MonoWhite)
+                .border(2.dp, MonoBlack)
+                .clickable {
+                    newLimitText = b.monthlyLimit.toInt().toString()
+                    showEditSheet = true
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Edit, "Edit budget")
-            Spacer(Modifier.width(Dimens.SpacingSm))
-            Text("Edit Budget Limit", fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Edit, "Edit budget", tint = MonoBlack)
+                Spacer(Modifier.width(Dimens.SpacingSm))
+                Text("EDIT BUDGET LIMIT", fontWeight = FontWeight.Black, color = MonoBlack)
+            }
         }
 
         // ── Delete Button ──
-        OutlinedButton(
-            onClick = {
-                viewModel.deleteBudget(b)
-                onBack()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseRose),
-            border = androidx.compose.foundation.BorderStroke(1.dp, ExpenseRose.copy(alpha = 0.5f)),
-            shape = RoundedCornerShape(Dimens.RadiusMd)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(ExpenseRose)
+                .border(2.dp, MonoBlack)
+                .clickable {
+                    viewModel.deleteBudget(b)
+                    onBack()
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.DeleteForever, "Delete budget")
-            Spacer(Modifier.width(Dimens.SpacingSm))
-            Text("Delete Budget", fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.DeleteForever, "Delete budget", tint = MonoWhite)
+                Spacer(Modifier.width(Dimens.SpacingSm))
+                Text("DELETE BUDGET", fontWeight = FontWeight.Black, color = MonoWhite)
+            }
         }
+
+        Spacer(Modifier.height(Dimens.SpacingHuge))
     }
 
     // ── Edit Bottom Sheet ──
     if (showEditSheet) {
         ModalBottomSheet(
             onDismissRequest = { showEditSheet = false },
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MonoWhite,
+            shape = RectangleShape,
+            dragHandle = { Box(Modifier.fillMaxWidth().height(4.dp).background(MonoBlack)) }
         ) {
             Column(
                 modifier = Modifier
@@ -190,17 +224,18 @@ fun BudgetDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
             ) {
                 Text(
-                    "Edit Budget for ${b.category}",
+                    "EDIT BUDGET LIMIT",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black,
+                    color = MonoBlack
                 )
 
-                NeumorphicCard(isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
+                BlockCard {
                     TextField(
                         value = newLimitText,
                         onValueChange = { newLimitText = it.filter { c -> c.isDigit() } },
-                        label = { Text("New monthly limit (₹)") },
-                        leadingIcon = { Icon(Icons.Default.AttachMoney, "Amount") },
+                        label = { Text("NEW MONTHLY LIMIT (₹)", fontWeight = FontWeight.Black) },
+                        leadingIcon = { Icon(Icons.Default.AttachMoney, null, tint = MonoBlack) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -208,25 +243,28 @@ fun BudgetDetailScreen(
                             focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
                             unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
                             focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedTextColor = MonoBlack,
+                            unfocusedTextColor = MonoBlack
                         )
                     )
                 }
 
-                Button(
-                    onClick = {
-                        val newLimit = newLimitText.toFloatOrNull()
-                        if (newLimit != null && newLimit > 0) {
-                            viewModel.updateBudgetLimit(b, newLimit)
-                            showEditSheet = false
-                        }
-                    },
-                    enabled = (newLimitText.toFloatOrNull() ?: 0f) > 0f,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    shape = RoundedCornerShape(Dimens.RadiusMd)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .background(MonoBlack)
+                        .clickable(enabled = (newLimitText.toFloatOrNull() ?: 0f) > 0f) {
+                            val newLimit = newLimitText.toFloatOrNull()
+                            if (newLimit != null && newLimit > 0) {
+                                viewModel.updateBudgetLimit(b, newLimit)
+                                showEditSheet = false
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Save", fontWeight = FontWeight.SemiBold)
+                    Text("SAVE CHANGES", fontWeight = FontWeight.Black, color = MonoWhite)
                 }
 
                 Spacer(Modifier.height(Dimens.SpacingLg))

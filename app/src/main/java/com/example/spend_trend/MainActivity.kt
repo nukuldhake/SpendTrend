@@ -12,6 +12,8 @@ import com.example.spend_trend.ui.navigation.AppScaffold
 import com.example.spend_trend.ui.theme.ThemePreferences
 import com.example.spend_trend.ui.theme.SpendTrendTheme
 import com.example.spend_trend.data.UserPreferences
+import com.example.spend_trend.ui.auth.AuthViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.sms.SmsSyncManager
 import java.util.concurrent.TimeUnit
 
@@ -30,6 +32,9 @@ class MainActivity : ComponentActivity() {
     // The old smsObserver triggered redundant syncs on every lifecycle start,
     // hammering the local database unnecessarily.
 
+    /** Tracks permission state reactively — Compose observes this to recompose */
+    private val _permissionsGranted = mutableStateOf(false)
+
     private val smsPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -38,7 +43,9 @@ class MainActivity : ComponentActivity() {
             ThemePreferences.updateAutoTracking(true)
             scheduleSmsSyncWork()
         }
-        recreate() 
+        // Update reactive state instead of calling recreate()
+        // Compose will recompose automatically when this changes
+        _permissionsGranted.value = granted
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,23 +61,27 @@ class MainActivity : ComponentActivity() {
             scheduleSmsSyncWork()
         }
 
+        // Initialize reactive permission state
+        _permissionsGranted.value = hasSmsPermissions()
+
         setContent {
             SpendTrendTheme {
-                var showRationale by remember { 
-                    mutableStateOf(!hasSmsPermissions()) 
-                }
+                // Observe the reactive permission state — auto-dismisses rationale
+                val permissionsGranted by _permissionsGranted
+                var userSkipped by remember { mutableStateOf(false) }
 
-                if (showRationale) {
+                if (!permissionsGranted && !userSkipped) {
                     PermissionRationaleScreen(
                         onGrantClick = {
                             requestSmsPermissions()
                         },
                         onSkipClick = {
-                            showRationale = false
+                            userSkipped = true
                         }
                     )
                 } else {
-                    AppScaffold()
+                    val authViewModel: AuthViewModel = viewModel()
+                    AppScaffold(authViewModel = authViewModel)
                 }
             }
         }

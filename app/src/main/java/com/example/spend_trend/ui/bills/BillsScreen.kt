@@ -1,15 +1,12 @@
 package com.example.spend_trend.ui.bills
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable as composeClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
@@ -17,21 +14,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.BillEntity
 import com.example.spend_trend.data.repository.BillRepository
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.theme.*
 import java.time.Instant
 import java.time.ZoneId
@@ -53,63 +46,42 @@ fun BillsScreen() {
     val paidBills = allBills.filter { it.isPaid }
 
     var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("PENDING", "HISTORY")
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MonoWhite)
             .padding(horizontal = Dimens.SpacingLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
         Spacer(Modifier.height(Dimens.SpacingSm))
 
-        // ── Neumorphic Tabs ──
-        NeumorphicCard(
+        // ── Noir Custom TabRow ──
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            isConcave = true,
-            cornerRadius = 28.dp,
-            backgroundColor = MaterialTheme.colorScheme.background
+                .border(2.dp, MonoBlack)
+                .background(MonoWhite)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(4.dp)
-            ) {
-                listOf("Pending", "History").forEachIndexed { index, title ->
-                    val isSelected = selectedTab == index
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clickable { selectedTab = index },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                            NeumorphicCard(
-                                modifier = Modifier.fillMaxSize(),
-                                cornerRadius = 24.dp,
-                                elevation = 4.dp,
-                                backgroundColor = MaterialTheme.colorScheme.surface
-                            ) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        title,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Primary
-                                    )
-                                }
-                            }
-                        } else {
-                            Text(
-                                title,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
+            tabs.forEachIndexed { index, title ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(if (selectedTab == index) MonoBlack else MonoWhite)
+                        .clickable { selectedTab = index }
+                        .padding(vertical = Dimens.SpacingMd),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        title,
+                        fontWeight = FontWeight.Black,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (selectedTab == index) MonoWhite else MonoBlack
+                    )
+                }
+                if (index < tabs.size - 1) {
+                    Box(modifier = Modifier.width(2.dp).fillMaxHeight().background(MonoBlack))
                 }
             }
         }
@@ -127,10 +99,9 @@ fun BillsScreen() {
                 }
             } else {
                 items(displayList, key = { it.id }) { bill ->
-                    BillCard(
+                    BillBlockRow(
                         bill = bill,
-                        onPay = { viewModel.markAsPaid(bill) },
-                        onDelete = { viewModel.deleteBill(bill) }
+                        onPay = { viewModel.markAsPaid(bill) }
                     )
                 }
             }
@@ -139,44 +110,38 @@ fun BillsScreen() {
 }
 
 @Composable
-private fun BillCard(
+private fun BillBlockRow(
     bill: BillEntity,
-    onPay: () -> Unit,
-    onDelete: () -> Unit
+    onPay: () -> Unit
 ) {
     val dateStr = try {
         Instant.ofEpochMilli(bill.dueDateMillis)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+            .uppercase()
     } catch (e: Exception) {
-        "Unknown Date"
+        "UNKNOWN DATE"
     }
 
     val isOverdue = !bill.isPaid && bill.dueDateMillis < System.currentTimeMillis()
 
-    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+    BlockCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.SpacingSm),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon
+            // Icon Block
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (bill.isPaid) IncomeGreen.copy(alpha = 0.10f)
-                        else if (isOverdue) ExpenseRose.copy(alpha = 0.10f)
-                        else Primary.copy(alpha = 0.10f)
-                    ),
+                    .border(2.dp, if (isOverdue) ExpenseRose else MonoBlack)
+                    .background(if (isOverdue) ExpenseRose.copy(alpha = 0.1f) else Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (bill.isPaid) Icons.Default.CheckCircle else Icons.Default.Payment,
+                    imageVector = if (bill.isPaid) Icons.Default.Verified else Icons.Default.AccountBalance,
                     contentDescription = null,
-                    tint = if (bill.isPaid) IncomeGreen else if (isOverdue) ExpenseRose else Primary,
+                    tint = if (bill.isPaid) IncomeGreen else if (isOverdue) ExpenseRose else MonoBlack,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -186,33 +151,34 @@ private fun BillCard(
             // Info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    bill.title,
+                    bill.title.uppercase(),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Black,
+                    color = MonoBlack
                 )
                 Text(
-                    if (bill.isPaid) "Paid on $dateStr" else "Due on $dateStr",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isOverdue) ExpenseRose else MaterialTheme.colorScheme.onSurfaceVariant
+                    if (bill.isPaid) "PAID ON $dateStr" else "DUE ON $dateStr",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isOverdue) ExpenseRose else MonoGrayMedium
                 )
             }
 
-            // Amount
+            // Amount + Pay button
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     "₹${bill.amount.toInt().formatWithComma()}",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Black,
+                    color = MonoBlack
                 )
                 if (!bill.isPaid) {
-                    TextButton(
+                    Spacer(Modifier.height(Dimens.SpacingSm))
+                    BlockButton(
+                        text = "PAY",
                         onClick = onPay,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                    ) {
-                        Text("PAY NOW", color = Primary, fontWeight = FontWeight.Black, fontSize = 12.sp)
-                    }
+                        modifier = Modifier.height(32.dp).width(80.dp),
+                        isPrimary = true
+                    )
                 }
             }
         }
@@ -227,40 +193,28 @@ private fun EmptyBillsState(isHistory: Boolean) {
             .padding(vertical = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        NeumorphicCard(
-            modifier = Modifier.size(100.dp),
-            cornerRadius = 50.dp,
-            elevation = 6.dp
-        ) {
+        BlockCard(modifier = Modifier.size(100.dp), hasShadow = true) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    tint = MonoBlack
                 )
             }
         }
         Spacer(Modifier.height(Dimens.SpacingLg))
         Text(
-            if (isHistory) "No payment history yet" else "All bills are paid! 🎉",
+            if (isHistory) "NO HISTORY" else "NO PENDING BILLS",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = FontWeight.Black,
+            color = MonoBlack
         )
         Text(
-            if (isHistory) "Paid bills will appear here" else "You're all caught up with your utilities",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            if (isHistory) "PAID BILLS WILL ACCUMULATE HERE" else "YOU ARE ALL CAUGHT UP",
+            style = MaterialTheme.typography.labelSmall,
+            color = MonoGrayMedium
         )
     }
 }
 
-// Extension to allow clickable on any modifier
-private fun Modifier.clickable(onClick: () -> Unit) = composed {
-    this.composeClickable(
-        interactionSource = remember { MutableInteractionSource() },
-        indication = null,
-        onClick = onClick
-    )
-}
