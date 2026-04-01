@@ -1,22 +1,24 @@
 package com.example.spend_trend.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.theme.Dimens
+import com.example.spend_trend.ui.theme.MonoGrayLight
+import com.example.spend_trend.ui.theme.Primary
+import com.example.spend_trend.ui.theme.OnPrimary
 
 /**
- * A Neumorphic (Soft UI) themed Chip.
- * Can be 'Popped Out' (convex) or 'Pressed In' (concave).
+ * NeumorphicChip is DEPRECATED for Neo-Brutalism.
+ * Now renders as a flat, bordered chip with instant color swap on selection.
+ * Delegates to the same visual logic as BlockChip.
  */
 @Composable
 fun NeumorphicChip(
@@ -24,23 +26,18 @@ fun NeumorphicChip(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    selectedColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    onSelectedColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
+    selectedColor: Color = Primary,
+    onSelectedColor: Color = OnPrimary
 ) {
     Box(
         modifier = modifier
-            .neumorphicShadow(
-                elevation = if (isSelected) 4.dp else 8.dp, // flattened when selected
-                cornerRadius = 16.dp,
-                isConcave = isSelected // 'Pressed In' when selected
-            )
-            .clip(RoundedCornerShape(16.dp))
+            .border(Dimens.BorderWidthStandard, if (isSelected) selectedColor else MonoGrayLight)
             .background(if (isSelected) selectedColor else MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingSm)
     ) {
         Text(
-            text = text,
+            text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             color = if (isSelected) onSelectedColor else MaterialTheme.colorScheme.onSurface
         )
