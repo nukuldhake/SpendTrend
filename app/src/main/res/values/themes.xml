@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.SpendTrend" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Base app theme — NoActionBar since Compose manages its own top bars.
+        Uses android:Theme.Material.Light.NoActionBar which is available system-wide
+        without needing the MDC XML library (we use Compose M3 instead).
+    -->
+    <style name="Theme.SpendTrend" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Prevent white flash on cold start by setting a brand-matching background -->
+        <item name="android:windowBackground">@color/background_light</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Light status bar icons on light background -->
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>
