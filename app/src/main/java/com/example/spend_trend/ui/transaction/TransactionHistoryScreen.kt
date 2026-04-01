@@ -2,20 +2,19 @@ package com.example.spend_trend.ui.transaction
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -25,8 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicChip
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -80,98 +80,111 @@ fun TransactionHistoryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = Dimens.SpacingLg)
-            .padding(vertical = Dimens.SpacingLg)
     ) {
-        // ── Summary Row ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)
-        ) {
-            NeumorphicSummaryChip("Income", income, IncomeGreen, Modifier.weight(1f))
-            NeumorphicSummaryChip("Expense", expense, ExpenseRose, Modifier.weight(1f))
-            NeumorphicSummaryChip("Net", net, if (net >= 0) IncomeGreen else ExpenseRose, Modifier.weight(1f))
-        }
-
-        Spacer(Modifier.height(Dimens.SpacingLg))
-
-        // ── Filters ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)) {
-                TransactionFilter.values().forEach { filter ->
-                    NeumorphicChip(
-                        text = filter.name.lowercase().replaceFirstChar { it.uppercase() },
-                        isSelected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter }
-                    )
-                }
-            }
-
-            Row {
+        BlockTopBar(
+            title = "LEDGER",
+            actions = {
                 IconButton(onClick = { showRangePicker = true }) {
-                    Icon(Icons.Default.DateRange, contentDescription = "Date range", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.FilterList, null, tint = MonoBlack)
                 }
                 IconButton(onClick = { viewModel.exportToCsv(context) }) {
-                    Icon(Icons.Default.Download, contentDescription = "Export CSV", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.IosShare, null, tint = MonoBlack)
                 }
             }
-        }
+        )
 
-        Spacer(Modifier.height(Dimens.SpacingMd))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+        ) {
+            Spacer(Modifier.height(Dimens.SpacingSm))
 
-        if (filtered.isEmpty()) {
-            NeumorphicEmptyState()
-        } else {
-            val groupedTransactions = remember(filtered) {
-                filtered.groupBy { it.dateLabel() }
+            // ── Summary Cards ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)
+            ) {
+                BlockSummaryCard("INCOME", income, IncomeGreen, Modifier.weight(1f))
+                BlockSummaryCard("EXPENSE", expense, ExpenseRose, Modifier.weight(1f))
+                BlockSummaryCard("NET", net, if (net >= 0) MonoBlack else ExpenseRose, Modifier.weight(1f))
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
-                contentPadding = PaddingValues(bottom = 80.dp)
+            // ── Filter Switcher ──
+            Row(
+                modifier = Modifier.fillMaxWidth().border(2.dp, MonoBlack)
             ) {
-                groupedTransactions.forEach { (group, txList) ->
-                    stickyHeader(key = group) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.background
-                        ) {
-                            Text(
-                                text = group,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = Dimens.SpacingSm)
+                TransactionFilter.entries.forEach { filter ->
+                    val isSelected = selectedFilter == filter
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(if (isSelected) MonoBlack else MonoWhite)
+                            .clickable { selectedFilter = filter }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            filter.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = if (isSelected) MonoWhite else MonoBlack
+                        )
+                    }
+                }
+            }
+
+            if (filtered.isEmpty()) {
+                BlockEmptyState()
+            } else {
+                val groupedTransactions = remember(filtered) {
+                    filtered.groupBy { it.dateLabel() }
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+                    contentPadding = PaddingValues(bottom = 100.dp)
+                ) {
+                    groupedTransactions.forEach { (group, txList) ->
+                        stickyHeader(key = group) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.background
+                            ) {
+                                Text(
+                                    text = group.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    color = MonoGrayMedium,
+                                    modifier = Modifier.padding(vertical = Dimens.SpacingSm)
+                                )
+                            }
+                        }
+
+                        items(
+                            items = txList,
+                            key = { it.id }
+                        ) { tx ->
+                            SwipeableTransactionRow(
+                                transaction = tx,
+                                onDelete = {
+                                    viewModel.deleteTransaction(tx)
+                                    coroutineScope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "ENTRY REMOVED",
+                                            actionLabel = "UNDO",
+                                            duration = SnackbarDuration.Long
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            viewModel.addTransaction(tx)
+                                        }
+                                    }
+                                },
+                                onEdit = { selectedEditTx = tx }
                             )
                         }
-                    }
-
-                    items(
-                        items = txList,
-                        key = { it.id }
-                    ) { tx ->
-                        SwipeableTransactionRow(
-                            transaction = tx,
-                            onDelete = {
-                                viewModel.deleteTransaction(tx)
-                                coroutineScope.launch {
-                                    val result = snackbarHostState.showSnackbar(
-                                        message = "Transaction deleted",
-                                        actionLabel = "Undo",
-                                        duration = SnackbarDuration.Long
-                                    )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        viewModel.addTransaction(tx)
-                                    }
-                                }
-                            },
-                            onEdit = { selectedEditTx = tx }
-                        )
                     }
                 }
             }
@@ -179,21 +192,29 @@ fun TransactionHistoryScreen(
     }
 
     if (showRangePicker) {
-        ModalBottomSheet(onDismissRequest = { showRangePicker = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showRangePicker = false },
+            shape = androidx.compose.ui.graphics.RectangleShape,
+            containerColor = MonoWhite
+        ) {
             Column(Modifier.padding(Dimens.SpacingLg).padding(bottom = 32.dp)) {
-                Text("Select time range", style = MaterialTheme.typography.titleLarge)
+                Text("TIME RANGE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(Dimens.SpacingLg))
-                DateRangeFilter.values().forEach { range ->
-                    ListItem(
-                        headlineContent = { Text(range.label) },
-                        leadingContent = {
-                            Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Primary)
-                        },
-                        modifier = Modifier.clickable { 
+                DateRangeFilter.entries.forEach { range ->
+                    BlockCard(
+                        modifier = Modifier.fillMaxWidth().clickable { 
                             selectedRange = range
                             showRangePicker = false 
+                        },
+                        backgroundColor = if (selectedRange == range) MonoGrayLight else MonoWhite
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CalendarToday, null, tint = MonoBlack)
+                            Spacer(Modifier.width(Dimens.SpacingMd))
+                            Text(range.label.uppercase(), fontWeight = FontWeight.Black)
                         }
-                    )
+                    }
+                    Spacer(Modifier.height(Dimens.SpacingSm))
                 }
             }
         }
@@ -216,17 +237,17 @@ fun TransactionHistoryScreen(
 }
 
 @Composable
-fun NeumorphicSummaryChip(label: String, amount: Int, color: Color, modifier: Modifier = Modifier) {
-    NeumorphicCard(modifier = modifier, cornerRadius = Dimens.RadiusSm, elevation = 4.dp) {
+fun BlockSummaryCard(label: String, amount: Int, color: Color, modifier: Modifier = Modifier) {
+    BlockCard(modifier = modifier) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MonoGrayMedium)
             Text(
                 "₹${amount.formatWithComma()}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Black,
                 color = color,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -264,38 +285,36 @@ fun SwipeableTransactionRow(
         enableDismissFromEndToStart = true,
         backgroundContent = {
             val color = when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.StartToEnd -> ExpenseRose.copy(alpha = 0.2f)
-                SwipeToDismissBoxValue.EndToStart -> Primary.copy(alpha = 0.2f)
+                SwipeToDismissBoxValue.StartToEnd -> ExpenseRose
+                SwipeToDismissBoxValue.EndToStart -> MonoBlack
                 else -> Color.Transparent
             }
             
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(Dimens.RadiusSm))
+                    .border(1.dp, MonoBlack)
                     .background(color)
                     .padding(horizontal = Dimens.SpacingXxl),
                 contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) 
                     Alignment.CenterStart else Alignment.CenterEnd
             ) {
                 if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                    Icon(Icons.Default.DeleteForever, "Delete", tint = ExpenseRose)
+                    Icon(Icons.Default.Delete, "Delete", tint = MonoWhite)
                 } else if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                    Icon(Icons.Default.Edit, "Edit", tint = Primary)
+                    Icon(Icons.Default.Edit, "Edit", tint = MonoWhite)
                 }
             }
         }
     ) {
-        NeumorphicTransactionItem(transaction)
+        BlockTransactionItem(transaction)
     }
 }
 
 @Composable
-fun NeumorphicTransactionItem(tx: TransactionUi) {
-    NeumorphicCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = Dimens.RadiusSm,
-        elevation = 4.dp
+fun BlockTransactionItem(tx: TransactionUi) {
+    BlockCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -303,21 +322,21 @@ fun NeumorphicTransactionItem(tx: TransactionUi) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = 0.10f)),
+                    .border(1.dp, MonoBlack)
+                    .background(MonoWhite),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(categoryIcon(tx.category), null, tint = Primary, modifier = Modifier.size(Dimens.IconMd))
+                Icon(categoryIcon(tx.category), null, tint = MonoBlack, modifier = Modifier.size(Dimens.IconMd))
             }
             Spacer(Modifier.width(Dimens.SpacingMd))
             Column(Modifier.weight(1f)) {
-                Text(tx.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(tx.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(tx.title.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tx.category.uppercase(), style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
             }
             Text(
                 valStr(tx.amount),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Black,
                 color = if (tx.amount < 0) ExpenseRose else IncomeGreen
             )
         }
@@ -331,8 +350,8 @@ private fun valStr(amount: Int): String {
 }
 
 @Composable
-fun NeumorphicEmptyState() {
-    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+fun BlockEmptyState() {
+    BlockCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingHuge),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -340,12 +359,12 @@ fun NeumorphicEmptyState() {
             Icon(
                 Icons.AutoMirrored.Outlined.ReceiptLong,
                 null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                tint = MonoBlack,
                 modifier = Modifier.size(Dimens.IconHero)
             )
             Spacer(Modifier.height(Dimens.SpacingLg))
-            Text("No transactions yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Your financial activity will appear here", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), textAlign = TextAlign.Center)
+            Text("NO RECORDS FOUND", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+            Text("YOUR FINANCIAL LEDGER IS EMPTY", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium, textAlign = TextAlign.Center)
         }
     }
 }
@@ -360,3 +379,4 @@ enum class DateRangeFilter(val label: String) {
     LAST_1_YEAR("Last 1 year"), 
     ALL_TIME("All time")
 }
+

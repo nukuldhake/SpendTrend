@@ -1,13 +1,12 @@
 package com.example.spend_trend.ui.transaction
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,36 +15,32 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
-
-import com.example.spend_trend.ui.components.NeumorphicTopBar
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicChip
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(
-    onSave: (NewTransaction) -> Unit = {},
+    onSave: (TransactionUi) -> Unit = {},
     onDismiss: () -> Unit = {},
     onViewAdded: () -> Unit = {},
     snackbarHostState: SnackbarHostState? = null
 ) {
-    // ViewModel setup
     val context = LocalContext.current
     val viewModel: TransactionViewModel = viewModel(
         factory = TransactionViewModelFactory(
@@ -62,13 +57,12 @@ fun AddTransactionScreen(
     var showCategoryPicker by remember { mutableStateOf(false) }
     var hasAttemptedSave by remember { mutableStateOf(false) }
 
-    // Strict validation: reject malformed floats like "12..34" or "12.3.4"
     val parsedAmount = amountText.toFloatOrNull()
     val isAmountValid = parsedAmount != null && parsedAmount > 0f
     val amountError = when {
-        amountText.isBlank() && hasAttemptedSave -> "Amount is required"
-        amountText.isNotBlank() && parsedAmount == null -> "Invalid amount (e.g. \"12..3\")"
-        parsedAmount != null && parsedAmount <= 0f -> "Amount must be greater than zero"
+        amountText.isBlank() && hasAttemptedSave -> "AMOUNT REQUIRED"
+        amountText.isNotBlank() && parsedAmount == null -> "INVALID FORMAT"
+        parsedAmount != null && parsedAmount <= 0f -> "MUST BE > 0"
         else -> null
     }
     val isValid = description.isNotBlank() && isAmountValid && selectedCategory != null
@@ -77,316 +71,237 @@ fun AddTransactionScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (isValid && parsedAmount != null) {
-                        val newUi = TransactionUi(
-                            title = description.trim().ifEmpty { "Transaction" },
-                            category = selectedCategory!!,
-                            amount = if (isIncome) parsedAmount.toInt() else -parsedAmount.toInt(),
-                            date = transactionDate
-                        )
-
-                        // Save using ViewModel (real DB)
-                        viewModel.addTransaction(newUi)
-
-                        // Trigger callback for UI feedback
-                        onSave(NewTransaction(newUi.title, newUi.amount.toFloat(), newUi.category, newUi.date))
-
-                        // Show success snackbar
-                        snackbarHostState?.let { host ->
-                            coroutineScope.launch {
-                                host.showSnackbar(
-                                    message = "Transaction added!",
-                                    actionLabel = "View",
-                                    duration = SnackbarDuration.Short
-                                )
+        bottomBar = {
+            Box(modifier = Modifier.padding(Dimens.SpacingLg).padding(bottom = Dimens.BottomNavClearance)) {
+                BlockButton(
+                    text = "CONFIRM TRANSACTION",
+                    onClick = {
+                        if (isValid && parsedAmount != null) {
+                            val newUi = TransactionUi(
+                                title = description.trim().ifEmpty { "TRANSACTION" },
+                                category = selectedCategory!!,
+                                amount = if (isIncome) parsedAmount.toInt() else -parsedAmount.toInt(),
+                                date = transactionDate
+                            )
+                            viewModel.addTransaction(newUi)
+                            onSave(newUi)
+                            snackbarHostState?.let { host ->
+                                coroutineScope.launch {
+                                    host.showSnackbar("TRANSACTION INITIALIZED")
+                                }
                             }
+                            onViewAdded()
+                            onDismiss()
+                        } else {
+                            hasAttemptedSave = true
                         }
-
-                        onViewAdded()
-                        onDismiss()
-                    } else {
-                        hasAttemptedSave = true
-                    }
-                },
-                containerColor = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
-                contentColor = if (isValid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.38f)
-            ) {
-                Icon(Icons.Default.Check, contentDescription = "Save")
+                    },
+                    modifier = Modifier.fillMaxWidth().height(Dimens.MinTouchTarget)
+                )
             }
         }
-    ) { _ ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .padding(padding)
+                .padding(horizontal = Dimens.SpacingLg)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
-            NeumorphicTopBar(title = "New Transaction", onBack = onDismiss)
+            BlockTopBar(
+                title = "NEW RECORD",
+                onBack = onDismiss
+            )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-
-            // Income / Expense toggle
+            // Income / Expense Switcher (Noir Style)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
-            ) {
-                NeumorphicChip(
-                    text = "Expense",
-                    isSelected = !isIncome,
-                    onClick = { isIncome = false },
-                    selectedColor = MaterialTheme.colorScheme.errorContainer,
-                    onSelectedColor = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.weight(1f)
-                )
-                NeumorphicChip(
-                    text = "Income",
-                    isSelected = isIncome,
-                    onClick = { isIncome = true },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Amount – recessed card
-            NeumorphicCard(
-                modifier = Modifier.fillMaxWidth(),
-                isConcave = true,
-                backgroundColor = MaterialTheme.colorScheme.background
-            ) {
-                TextField(
-                    value = amountText,
-                    onValueChange = { new ->
-                        if (new.all { it.isDigit() || it == '.' }) {
-                            amountText = new
-                        }
-                    },
-                    label = { Text("Amount") },
-                    prefix = { Text(if (isIncome) "+" else "−") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Next
-                    ),
-                    textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = amountError != null,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedLabelColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
-                )
-            }
-
-            // Inline validation error
-            if (amountError != null) {
-                Text(
-                    text = amountError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
-            }
-
-            // Validation helper when save attempted but category missing
-            if (hasAttemptedSave && selectedCategory == null) {
-                Text(
-                    text = "Please select a category",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
-            }
-
-            // Category Picker – recessed card
-            NeumorphicCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showCategoryPicker = true },
-                isConcave = true,
-                backgroundColor = MaterialTheme.colorScheme.background
+                    .border(Dimens.BorderWidthStandard, MonoBlack)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimens.SpacingSm),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (selectedCategory != null) {
-                        Icon(
-                            imageVector = categoryIcon(selectedCategory!!),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
+                listOf(false to "EXPENSE", true to "INCOME").forEach { (income, label) ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(if (isIncome == income) MonoBlack else MonoWhite)
+                            .clickable { isIncome = income }
+                            .padding(vertical = Dimens.SpacingMd),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "Category",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = selectedCategory ?: "Select category",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (selectedCategory != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            text = label,
+                            color = if (isIncome == income) MonoWhite else MonoBlack,
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
-
-                    Icon(
-                        Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
 
-            // Description – recessed card
-            NeumorphicCard(
-                modifier = Modifier.fillMaxWidth(),
-                isConcave = true,
-                backgroundColor = MaterialTheme.colorScheme.background
-            ) {
-                TextField(
+            // Description Field
+            Column {
+                Text(
+                    "DESCRIPTION",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black
+                )
+                Spacer(Modifier.height(Dimens.SpacingXs))
+                OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description / Merchant") },
-                    placeholder = { Text("e.g. Lunch at Zomato") },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    placeholder = { Text("WHAT FOR?", color = MonoGrayMedium) },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    maxLines = 4,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = if (description.isBlank() && hasAttemptedSave) ExpenseRose else MonoBlack
                     )
                 )
             }
 
-            // Date Picker Field – recessed card
-            NeumorphicCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDatePicker = true },
-                isConcave = true,
-                backgroundColor = MaterialTheme.colorScheme.background
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimens.SpacingSm),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+            // Amount Field
+            Column {
+                Text(
+                    "AMOUNT",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black
+                )
+                Spacer(Modifier.height(Dimens.SpacingXs))
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) amountText = it },
+                    placeholder = { Text("0.00", color = MonoGrayMedium) },
+                    prefix = { Text(if (isIncome) "+" else "−", fontWeight = FontWeight.Black) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    singleLine = true,
+                    isError = amountError != null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = if (amountError != null) ExpenseRose else MonoBlack
                     )
-                    Spacer(Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Date",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = transactionDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Icon(
-                        Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (amountError != null) {
+                    Text(
+                        text = amountError,
+                        color = ExpenseRose,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.weight(1f))
+            // Category Picker
+            BlockCard(
+                onClick = { showCategoryPicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(Dimens.SpacingMd),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("CATEGORY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                        Text(
+                            selectedCategory ?: "SELECT CATEGORY",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedCategory == null && hasAttemptedSave) ExpenseRose else MonoBlack
+                        )
+                    }
+                    Icon(Icons.Default.Category, null)
+                }
+            }
+
+            // Date Picker
+            BlockCard(
+                onClick = { showDatePicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(Dimens.SpacingMd),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("DATE", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                        Text(
+                            transactionDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")).uppercase(),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Icon(Icons.Default.DateRange, null)
+                }
             }
         }
     }
 
-    // Date Picker Dialog
+    if (showCategoryPicker) {
+        CategoryPickerDialog(
+            onCategorySelected = {
+                selectedCategory = it
+                showCategoryPicker = false
+            },
+            onDismiss = { showCategoryPicker = false }
+        )
+    }
+
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = transactionDate.toEpochDay() * 86400000L
+            initialSelectedDateMillis = transactionDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         )
-
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val newDate = LocalDate.ofEpochDay(millis / 86400000L)
-                            transactionDate = newDate
-                        }
-                        showDatePicker = false
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        transactionDate = Instant.ofEpochMilli(it)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
                     }
-                ) { Text("OK") }
+                    showDatePicker = false
+                }) { Text("OK", color = MonoBlack, fontWeight = FontWeight.Bold) }
             },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-            }
+            colors = DatePickerDefaults.colors(containerColor = MonoWhite)
         ) {
-            DatePicker(
-                state = datePickerState,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-    }
-
-    // Category Picker Bottom Sheet
-    if (showCategoryPicker) {
-        ModalBottomSheet(onDismissRequest = { showCategoryPicker = false }) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Select Category", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(16.dp))
-                LazyColumn {
-                    items(listOf("Food", "Transport", "Shopping", "Salary", "Bills", "Entertainment", "Health", "Other")) { cat ->
-                        ListItem(
-                            headlineContent = { Text(cat) },
-                            leadingContent = {
-                                Icon(
-                                    categoryIcon(cat),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                selectedCategory = cat
-                                showCategoryPicker = false
-                            }
-                        )
-                    }
-                }
-            }
+            DatePicker(state = datePickerState)
         }
     }
 }
 
-data class NewTransaction(
-    val description: String,
-    val amount: Float,
-    val category: String,
-    val date: LocalDate
-)
+@Composable
+fun CategoryPickerDialog(
+    onCategorySelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val categories = listOf("FOOD", "TRANSPORT", "RENT", "SHOPPING", "ENTERTAINMENT", "HEALTH", "OTHER")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("SELECT CATEGORY", fontWeight = FontWeight.Black) },
+        text = {
+            LazyColumn {
+                items(categories) { category ->
+                    Text(
+                        text = category,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onCategorySelected(category) }
+                            .padding(vertical = Dimens.SpacingMd),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = MonoGrayLight)
+                }
+            }
+        },
+        confirmButton = {},
+        containerColor = MonoWhite,
+        shape = androidx.compose.ui.graphics.RectangleShape
+    )
+}
