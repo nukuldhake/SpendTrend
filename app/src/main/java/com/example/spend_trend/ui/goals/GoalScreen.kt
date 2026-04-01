@@ -32,7 +32,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalScreen() {
+fun GoalScreen(onBack: () -> Unit = {}) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: GoalViewModel = viewModel(
         factory = GoalViewModelFactory(GoalRepository(db.goalDao()))
@@ -44,30 +44,21 @@ fun GoalScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MonoWhite)
+            .background(MaterialTheme.colorScheme.background) // Curvy Playful bg
     ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            com.example.spend_trend.ui.components.BlockTopBar(
+                title = "Goals",
+                onBack = onBack
+            )
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = Dimens.SpacingLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
-            contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = 120.dp)
+            contentPadding = PaddingValues(top = Dimens.SpacingSm, bottom = 120.dp)
         ) {
-            item {
-                Column(modifier = Modifier.padding(bottom = Dimens.SpacingSm)) {
-                    Text(
-                        "FINANCIAL GOALS",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Black,
-                        color = MonoBlack
-                    )
-                    Text(
-                        "BLOCK BY BLOCK TO YOUR DREAMS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MonoGrayMedium
-                    )
-                }
-            }
 
             if (allGoals.isEmpty()) {
                 item {
@@ -93,8 +84,9 @@ fun GoalScreen() {
                 }
             }
         }
+        } // Close Column
 
-        // Noir Floating Action Button
+        // Playful Floating Action Button
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)

@@ -12,21 +12,21 @@ import androidx.compose.ui.graphics.Color
 // ════════════════════════════════════════════════
 
 // ── Core Identity (replaces Mono*) ──
-val MonoBlack            = Color(0xFF0F172A)   // Slate-900 — deep ink, not harsh black
-val MonoWhite            = Color(0xFFF8FAFC)   // Slate-50 / Paper White
-val MonoGrayDark         = Color(0xFF1E293B)   // Slate-800
-val MonoGrayLight        = Color(0xFFE2E8F0)   // Slate-200
-val MonoGrayMedium       = Color(0xFF64748B)   // Slate-500
+val MonoBlack            = Color(0xFF000000)   // Pure Black
+val MonoWhite            = Color(0xFFFFFFFF)   // Pure White
+val MonoGrayDark         = Color(0xFF333333)   
+val MonoGrayLight        = Color(0xFFE0E0E0)   
+val MonoGrayMedium       = Color(0xFF888888)   
 
-// ── Brand Primary (Electric Blue) ──
-val Primary              = Color(0xFF3B82F6)   // Blue-500
-val OnPrimary            = Color(0xFFFFFFFF)
-val PrimaryDark          = Color(0xFF1D4ED8)   // Blue-700
-val PrimaryLight         = Color(0xFFDBEAFE)   // Blue-100
+// ── Brand Primary (Neon Cyan) ──
+val Primary              = Color(0xFF22D3EE)   // Cyan-400
+val OnPrimary            = Color(0xFF000000)
+val PrimaryDark          = Color(0xFF0891B2)   // Cyan-600
+val PrimaryLight         = Color(0xFFA5F3FC)   // Cyan-200
 
 // ── Secondary (Slate) ──
-val Secondary            = Color(0xFF475569)   // Slate-600
-val OnSecondary          = Color(0xFFFFFFFF)
+val Secondary            = Color(0xFF14C38E)   // Vibrant Green
+val OnSecondary          = Color(0xFF000000)
 
 // ── Semantic Status ──
 val IncomeGreen          = Color(0xFF10B981)   // Emerald-500
@@ -44,22 +44,22 @@ val AccentEmeraldLight   = Color(0xFFECFDF5)   // Emerald-50
 // ════════════════════════════════════════════════
 //  Dark Mode — Deep Slate
 // ════════════════════════════════════════════════
-val DarkBackground       = Color(0xFF020617)   // Slate-950
-val DarkSurface          = Color(0xFF0F172A)   // Slate-900
-val DarkSurfaceVariant   = Color(0xFF1E293B)   // Slate-800
-val DarkOnSurface        = Color(0xFFF1F5F9)   // Slate-100
-val DarkOnSurfaceVariant = Color(0xFF94A3B8)   // Slate-400
-val DarkOutline          = Color(0xFF475569)   // Slate-600
+val DarkBackground       = Color(0xFF083344)   // Cyan-950 (Deep Slate Cyan)
+val DarkSurface          = Color(0xFF164E63)   // Cyan-900 (Dark Teal)
+val DarkSurfaceVariant   = Color(0xFF064E3B)
+val DarkOnSurface        = Color(0xFFFFFFFF)
+val DarkOnSurfaceVariant = Color(0xFFAAAAAA)
+val DarkOutline          = Color(0xFF000000)   // Pure Black for Brutalist contrast
 
 // ════════════════════════════════════════════════
 //  Light Mode — Paper White
 // ════════════════════════════════════════════════
-val LightBackground      = Color(0xFFF8FAFC)   // Slate-50
+val LightBackground      = Color(0xFFD4F6ED)   // Pastel Mint
 val LightSurface         = Color(0xFFFFFFFF)   // Pure white for cards
-val LightSurfaceVariant  = Color(0xFFF1F5F9)   // Slate-100
-val LightOnSurface       = Color(0xFF0F172A)   // Slate-900
-val LightOnSurfaceVariant = Color(0xFF475569)  // Slate-600
-val LightOutline         = Color(0xFF0F172A)   // Slate-900
+val LightSurfaceVariant  = Color(0xFFF2F2F2)
+val LightOnSurface       = Color(0xFF000000)   // Pure Black
+val LightOnSurfaceVariant = Color(0xFF444444)
+val LightOutline         = Color(0xFF000000)   // Pure Black
 
 val InverseSurface       = Color(0xFFF1F5F9)   // Slate-100
 val InverseOnSurface     = Color(0xFF0F172A)   // Slate-900
@@ -107,17 +107,41 @@ val DarkNeumorphicLightShadow = Color(0xFF1E293B) // Slate-800
 val DarkNeumorphicDarkShadow  = Color(0xFF020617) // Slate-950
 
 // ════════════════════════════════════════════════
+//  Category Colors (For Transaction Cards)
+// ════════════════════════════════════════════════
+object CategoryColors {
+    val Orange = Color(0xFFFF8E4F)
+    val Blue   = Color(0xFF7AD1F9)
+    val Purple = Color(0xFFA07CF6)
+    val Yellow = Color(0xFFFFDF59)
+    val Green  = Color(0xFF14C38E)
+    val Pink   = Color(0xFFFFA1C1)
+
+    fun getColorForCategory(category: String, default: Color = Color(0xFFFFFFFF)): Color {
+        return when (category.lowercase()) {
+            "food", "dining" -> Orange
+            "transport", "travel" -> Blue
+            "shopping", "retail" -> Purple
+            "housing", "bills", "utilities" -> Yellow
+            "salary", "income" -> Green
+            "health", "fitness" -> Pink
+            else -> default // Will fall back to white card if unknown
+        }
+    }
+}
+
+// ════════════════════════════════════════════════
 //  Chart Palette (for pie chart / analytics)
 // ════════════════════════════════════════════════
 object ChartPalette {
     val colors = listOf(
-        Color(0xFF3B82F6),  // Blue-500
-        Color(0xFF10B981),  // Emerald-500
-        Color(0xFFF59E0B),  // Amber-500
-        Color(0xFFF43F5E),  // Rose-500
-        Color(0xFF8B5CF6),  // Violet-500
-        Color(0xFF06B6D4),  // Cyan-500
-        Color(0xFFEC4899),  // Pink-500
-        Color(0xFF84CC16),  // Lime-500
+        CategoryColors.Orange,
+        CategoryColors.Purple,
+        CategoryColors.Yellow,
+        CategoryColors.Green,
+        CategoryColors.Blue,
+        CategoryColors.Pink,
+        Color(0xFFEC4899),
+        Color(0xFF84CC16)
     )
 }

@@ -32,7 +32,8 @@ import com.example.spend_trend.ui.theme.*
 
 @Composable
 fun BudgetsScreen(
-    onCardClick: (Int) -> Unit = {}
+    onCardClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: BudgetViewModel = viewModel(
@@ -52,12 +53,21 @@ fun BudgetsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MonoWhite)
-            .padding(horizontal = Dimens.SpacingLg)
-            .padding(vertical = Dimens.SpacingLg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        if (hasOverBudget) {
-            val overBudgetCategories = budgets.filter { it.currentSpent > it.monthlyLimit }
+        com.example.spend_trend.ui.components.BlockTopBar(
+            title = "Budgets",
+            onBack = onBack
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimens.SpacingLg)
+                .padding(top = Dimens.SpacingLg)
+        ) {
+            if (hasOverBudget) {
+                val overBudgetCategories = budgets.filter { it.currentSpent > it.monthlyLimit }
             overBudgetCategories.forEach { overBudget ->
                 BlockCard(modifier = Modifier.fillMaxWidth(), backgroundColor = ExpenseRose) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -132,6 +142,7 @@ fun BudgetsScreen(
                         BudgetBlockCard(budget)
                     }
                 }
+            }
             }
         }
     }

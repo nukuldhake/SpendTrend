@@ -163,6 +163,34 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
             BlockCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(Dimens.SpacingXs)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("THEME", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
+                        var themeExpanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(expanded = themeExpanded, onExpandedChange = { themeExpanded = !themeExpanded }) {
+                            OutlinedTextField(
+                                value = ThemePreferences.themeMode.name, onValueChange = {}, readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = themeExpanded) },
+                                modifier = Modifier.width(135.dp).menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                                shape = RectangleShape,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Primary,
+                                    unfocusedBorderColor = MonoGrayLight,
+                                    focusedLabelColor = MonoBlack
+                                )
+                            )
+                            ExposedDropdownMenu(expanded = themeExpanded, onDismissRequest = { themeExpanded = false }) {
+                                ThemeMode.entries.forEach { mode ->
+                                    DropdownMenuItem(text = { Text(mode.name) }, onClick = { 
+                                        ThemePreferences.updateTheme(mode)
+                                        themeExpanded = false 
+                                    })
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(Modifier.height(Dimens.SpacingLg))
+
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("CURRENCY", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
                         var expanded by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {

@@ -314,7 +314,8 @@ fun SwipeableTransactionRow(
 @Composable
 fun BlockTransactionItem(tx: TransactionUi) {
     BlockCard(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = CategoryColors.getColorForCategory(tx.category)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -323,21 +324,21 @@ fun BlockTransactionItem(tx: TransactionUi) {
                 modifier = Modifier
                     .size(40.dp)
                     .border(1.dp, MonoBlack)
-                    .background(MonoWhite),
+                    .background(Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(categoryIcon(tx.category), null, tint = MonoBlack, modifier = Modifier.size(Dimens.IconMd))
             }
             Spacer(Modifier.width(Dimens.SpacingMd))
             Column(Modifier.weight(1f)) {
-                Text(tx.title.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(tx.category.uppercase(), style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                Text(tx.title.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MonoBlack)
+                Text(tx.category.uppercase(), style = MaterialTheme.typography.labelSmall, color = MonoBlack.copy(alpha = 0.7f))
             }
             Text(
                 valStr(tx.amount),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Black,
-                color = if (tx.amount < 0) ExpenseRose else IncomeGreen
+                color = MonoBlack
             )
         }
     }

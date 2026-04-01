@@ -3,8 +3,8 @@ package com.example.spend_trend.ui.theme
 import androidx.compose.ui.unit.dp
 
 /**
- * Centralized design tokens for SpendTrend Neo-Brutal.
- * Sharp geometry, thick borders, hard offset shadows.
+ * Centralized design tokens for SpendTrend Playful Neo-Brutalism.
+ * Large curvy geometry, thick borders, hard offset shadows.
  * All layout values must reference these tokens — no magic numbers.
  */
 object Dimens {
@@ -19,13 +19,14 @@ object Dimens {
     val SpacingHuge = 32.dp
     val Spacing3xl  = 40.dp
 
-    // ── Neo-Brutal Sharp Radii (all 0dp) ──
-    val RadiusXs   = 0.dp
-    val RadiusSm   = 0.dp
-    val RadiusMd   = 0.dp
-    val RadiusLg   = 0.dp
-    val RadiusXl   = 0.dp
-    val RadiusFull = 0.dp
+    // ── Playful Curvy Radii ──
+    val RadiusXs   = 8.dp
+    val RadiusSm   = 12.dp
+    val RadiusMd   = 16.dp
+    val RadiusLg   = 24.dp
+    val RadiusXl   = 32.dp
+    val RadiusHero = 40.dp
+    val RadiusFull = 999.dp
 
     // ── Border & Outline (Neo-Brutal Core) ──
     val BorderWidthThin     = 1.dp
@@ -61,7 +62,7 @@ object Dimens {
 
     // ── Card ──
     val CardPadding   = 16.dp
-    val CardPaddingLg = 20.dp
+    val CardPaddingLg = 24.dp
     val CardPaddingSm = 12.dp
 
     // ── Divider ──

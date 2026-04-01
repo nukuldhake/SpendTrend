@@ -7,6 +7,13 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -51,6 +58,7 @@ import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.MonoBlack
 import com.example.spend_trend.ui.theme.MonoWhite
 import com.example.spend_trend.ui.theme.Primary
+import com.example.spend_trend.ui.theme.CategoryColors
 import com.example.spend_trend.ui.theme.Dimens
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -90,7 +98,7 @@ fun AppScaffold(
     val bottomNavItems = listOf(
         BottomNavItem.Dashboard,
         BottomNavItem.Transactions,
-        BottomNavItem.Analytics,
+        BottomNavItem.Budgets,
         BottomNavItem.Copilot
     )
 
@@ -121,9 +129,9 @@ fun AppScaffold(
                     modifier = Modifier.padding(horizontal = Dimens.SpacingLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)
                 ) {
-                    DrawerItem(Icons.Default.Savings, "BUDGETS") {
+                    DrawerItem(Icons.Default.PieChart, "ANALYTICS") {
                         scope.launch { drawerState.close() }
-                        navController.navigate(Screen.Budgets.route)
+                        navController.navigate(Screen.Analytics.route)
                     }
                     DrawerItem(Icons.Default.Receipt, "BILLS") {
                         scope.launch { drawerState.close() }
@@ -164,7 +172,7 @@ fun AppScaffold(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                if (isBottomNavRoute) {
+                if (isBottomNavRoute && currentDestination?.route != Screen.Dashboard.route) {
                     BlockTopBar(
                         title = screenTitle(currentDestination?.route),
                         navigationIcon = {
@@ -177,44 +185,50 @@ fun AppScaffold(
             },
             bottomBar = {
                 if (isBottomNavRoute) {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier.border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline, RectangleShape)
-                    ) {
-                        bottomNavItems.forEach { item ->
-                            val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-                            NavigationBarItem(
-                                icon = { 
-                                    Icon(
-                                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon, 
-                                        contentDescription = item.contentDescription,
-                                        tint = if (isSelected) MonoWhite else MaterialTheme.colorScheme.onSurface
-                                    ) 
-                                },
-                                label = { 
-                                    Text(
-                                        item.label.uppercase(), 
-                                        fontWeight = FontWeight.Black,
-                                        style = MaterialTheme.typography.labelSmall
-                                    ) 
-                                },
-                                selected = isSelected,
-                                onClick = {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                    Box(modifier = Modifier.padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingMd).fillMaxWidth()) {
+                        NavigationBar(
+                            containerColor = MonoBlack,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .clip(CircleShape) // Floating Pill
+                                .border(Dimens.BorderWidthStandard, MonoBlack, CircleShape)
+                        ) {
+                            bottomNavItems.forEach { item ->
+                                val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+                                val indicatorCol = when(item.route) {
+                                    Screen.Dashboard.route -> CategoryColors.Green
+                                    Screen.Transactions.route -> CategoryColors.Blue
+                                    Screen.Analytics.route -> CategoryColors.Yellow
+                                    Screen.Copilot.route -> CategoryColors.Purple
+                                    else -> Primary
+                                }
+                                NavigationBarItem(
+                                    icon = { 
+                                        Icon(
+                                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon, 
+                                            contentDescription = item.contentDescription,
+                                            tint = if (isSelected) MonoBlack else MonoWhite.copy(alpha = 0.7f)
+                                        ) 
+                                    },
+                                    selected = isSelected,
+                                    onClick = {
+                                        navController.navigate(item.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = Primary,
-                                    selectedIconColor = MonoWhite,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = indicatorCol,
+                                        selectedIconColor = MonoBlack,
+                                        unselectedIconColor = MonoWhite.copy(alpha = 0.7f),
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -280,14 +294,19 @@ fun AppScaffold(
                 // Main Flow
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
-                        onViewAllTransactions = { navController.navigate(Screen.Transactions.route) }
+                        onViewAllTransactions = { navController.navigate(Screen.Transactions.route) },
+                        onNavigateToAddTx = { navController.navigate(Screen.AddTransaction.route) },
+                        onNavigateToBills = { navController.navigate(Screen.Bills.route) },
+                        onNavigateToAnalytics = { navController.navigate(Screen.Analytics.route) },
+                        onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
+                        onOpenDrawer = { scope.launch { drawerState.open() } }
                     )
                 }
                 composable(Screen.Transactions.route) {
                     TransactionHistoryScreen(snackbarHostState = snackbarHostState)
                 }
                 composable(Screen.Analytics.route) {
-                    AnalyticsScreen()
+                    AnalyticsScreen(onBack = { navController.popBackStack() })
                 }
                 composable(Screen.Copilot.route) {
                     CopilotScreen()
@@ -340,16 +359,17 @@ fun AppScaffold(
 
                 composable(Screen.Budgets.route) {
                     BudgetsScreen(
-                        onCardClick = { id -> navController.navigate(Screen.BudgetDetail.createRoute(id)) }
+                        onCardClick = { id -> navController.navigate(Screen.BudgetDetail.createRoute(id)) },
+                        onBack = { navController.popBackStack() }
                     )
                 }
 
                 composable(Screen.Goals.route) {
-                    GoalScreen()
+                    GoalScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable(Screen.Bills.route) {
-                    BillsScreen()
+                    BillsScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable(Screen.AddBill.route) {
@@ -360,7 +380,7 @@ fun AppScaffold(
                 }
 
                 composable(Screen.Forecast.route) {
-                    ForecastScreen()
+                    ForecastScreen(onBack = { navController.popBackStack() })
                 }
             }
         }
@@ -369,20 +389,27 @@ fun AppScaffold(
 
 @Composable
 private fun DrawerHeader() {
-    val name = UserPreferences.getName() ?: "GUEST"
+    val name = remember { mutableStateOf(UserPreferences.getName() ?: "GUEST") }
+    // Update name whenever this is recomposed (e.g. after login)
+    LaunchedEffect(Unit) {
+        name.value = UserPreferences.getName() ?: "GUEST"
+    }
     Box(
         modifier = Modifier.fillMaxWidth().background(MonoBlack).padding(Dimens.SpacingXxl),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
-                modifier = Modifier.size(80.dp).border(Dimens.BorderWidthStandard, Primary),
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(Primary, CircleShape)
+                    .border(Dimens.BorderWidthStandard, MonoBlack, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(name.take(1).uppercase(), style = MaterialTheme.typography.displaySmall, color = MonoWhite, fontWeight = FontWeight.Black)
+                Text(name.value.take(1).uppercase(), style = MaterialTheme.typography.displaySmall, color = MonoBlack, fontWeight = FontWeight.Black)
             }
             Spacer(Modifier.height(Dimens.SpacingMd))
-            Text(name.uppercase(), style = MaterialTheme.typography.titleLarge, color = MonoWhite, fontWeight = FontWeight.Black)
+            Text(name.value.uppercase(), style = MaterialTheme.typography.titleLarge, color = MonoWhite, fontWeight = FontWeight.Black)
         }
     }
 }
@@ -390,12 +417,18 @@ private fun DrawerHeader() {
 @Composable
 private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxWidth().border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline).clickable(onClick = onClick).padding(Dimens.SpacingMd)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg))
+            .border(Dimens.BorderWidthStandard, MonoBlack, androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg))
+            .background(MonoWhite)
+            .clickable(onClick = onClick)
+            .padding(Dimens.SpacingMd)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface)
+            Icon(icon, null, tint = MonoBlack)
             Spacer(Modifier.width(Dimens.SpacingMd))
-            Text(label, fontWeight = FontWeight.Black, style = MaterialTheme.typography.bodyLarge)
+            Text(label, fontWeight = FontWeight.Black, style = MaterialTheme.typography.bodyLarge, color = MonoBlack)
         }
     }
 }

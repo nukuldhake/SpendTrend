@@ -26,13 +26,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-fun AnalyticsScreen() {
+fun AnalyticsScreen(onBack: () -> Unit) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: AnalyticsViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -46,56 +48,103 @@ fun AnalyticsScreen() {
     val categorySpent by viewModel.categoryDistribution.collectAsState()
     val yoyData by viewModel.yoyComparison.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = Dimens.SpacingLg),
-        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
-        contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
-    ) {
-        // Category Distribution
-        item {
-            AnalyticsCard(title = "DISTRIBUTION", subtitle = "CURRENT MONTH") {
-                if (categorySpent.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                        Text("NO DATA AVAILABLE", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
-                    }
-                } else {
-                    Column(modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingMd)) {
-                        PieChart(
-                            data = categorySpent,
-                            modifier = Modifier.size(180.dp).align(Alignment.CenterHorizontally)
-                        )
-                        Spacer(Modifier.height(Dimens.SpacingLg))
-                        val total = categorySpent.sumOf { it.amount }.toFloat().coerceAtLeast(1f)
-                        categorySpent.take(6).forEach { spend ->
-                            val pct = (spend.amount.toFloat() / total * 100).toInt()
-                            LegendItem(spend.color, spend.category.uppercase(), "₹${spend.amount.toInt()}", "$pct%")
+    Scaffold(
+        topBar = {
+            BlockTopBar(
+                title = "ANALYTICS",
+                onBack = onBack
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
+            contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
+        ) {
+            // ── Innovative Stats Row ──
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+                ) {
+                    val totalSpent = categorySpent.sumOf { it.amount }
+                    InsightStat(
+                        label = "BURN RATE",
+                        value = "₹${(totalSpent / 30).toInt()}/d",
+                        color = CategoryColors.Orange,
+                        modifier = Modifier.weight(1f)
+                    )
+                    InsightStat(
+                        label = "TOP CAT",
+                        value = categorySpent.firstOrNull()?.category?.uppercase() ?: "N/A",
+                        color = CategoryColors.Purple,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Category Distribution
+            item {
+                AnalyticsCard(title = "DISTRIBUTION", subtitle = "MONTHLY SPEND") {
+                    if (categorySpent.isEmpty()) {
+                        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            Text("NO DATA COLLECTED", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                        }
+                    } else {
+                        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingMd)) {
+                            PieChart(
+                                data = categorySpent,
+                                modifier = Modifier.size(180.dp).align(Alignment.CenterHorizontally)
+                            )
+                            Spacer(Modifier.height(Dimens.SpacingLg))
+                            val total = categorySpent.sumOf { it.amount }.toFloat().coerceAtLeast(1f)
+                            categorySpent.take(4).forEach { spend ->
+                                val pct = (spend.amount.toFloat() / total * 100).toInt()
+                                LegendItem(spend.color, spend.category.uppercase(), "₹${spend.amount.toInt()}", "$pct%")
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Year over Year Comparison
-        item {
-            AnalyticsCard(title = "YEARLY COMPARISON", subtitle = "BLOCK TREND ANALYSIS") {
-                NoirYoYChart(
-                    data = yoyData,
-                    modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = Dimens.SpacingMd)
-                )
+            // Year over Year Comparison
+            item {
+                AnalyticsCard(title = "COMPARISON", subtitle = "YEAR OVER YEAR TREND") {
+                    NoirYoYChart(
+                        data = yoyData,
+                        modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = Dimens.SpacingMd)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AnalyticsCard(title: String, subtitle: String, content: @Composable () -> Unit) {
-    BlockCard(modifier = Modifier.fillMaxWidth(), hasShadow = true) {
+private fun InsightStat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    BlockCard(
+        modifier = modifier,
+        backgroundColor = color.copy(alpha = 0.1f),
+        borderColor = MonoBlack,
+        hasShadow = false
+    ) {
         Column {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+            Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MonoBlack.copy(alpha = 0.6f))
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MonoBlack, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsCard(title: String, subtitle: String, content: @Composable () -> Unit) {
+    BlockCard(modifier = Modifier.fillMaxWidth(), hasShadow = true, backgroundColor = MonoWhite) {
+        Column {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MonoBlack)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(Dimens.SpacingMd))
             content()
         }

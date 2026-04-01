@@ -45,7 +45,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @Composable
-fun ForecastScreen() {
+fun ForecastScreen(onBack: () -> Unit = {}) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: ForecastViewModel = viewModel(
         factory = ForecastViewModelFactory(TransactionRepository(db.transactionDao()))
@@ -71,12 +71,22 @@ fun ForecastScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = Dimens.SpacingLg)
-            .padding(vertical = Dimens.SpacingLg)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        // ── Noir Hero ──
+        com.example.spend_trend.ui.components.BlockTopBar(
+            title = "Forecast",
+            onBack = onBack
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimens.SpacingLg)
+                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+        ) {
+            Spacer(Modifier.height(Dimens.SpacingSm))
+
+            // ── Noir Hero ──
         BlockCard(
             modifier = Modifier.fillMaxWidth(),
             backgroundColor = MonoBlack
@@ -335,6 +345,7 @@ fun ForecastScreen() {
         Spacer(Modifier.height(Dimens.BottomNavClearance))
     }
 }
+}
 
 @Composable
 fun ForecastChart(
@@ -444,7 +455,7 @@ fun ForecastChart(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
-            }
+                }
         }
     }
 }

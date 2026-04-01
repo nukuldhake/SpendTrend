@@ -39,7 +39,7 @@ private val DarkColors = darkColorScheme(
     secondaryContainer   = AccentEmeraldDark,     // Emerald-700
     onSecondaryContainer = AccentEmeraldLight,    // Emerald-50
     tertiary             = WarningAmber,
-    onTertiary           = Color(0xFF0F172A),
+    onTertiary           = Color(0xFF000000),
     background           = DarkBackground,        // Slate-950
     onBackground         = DarkOnSurface,         // Slate-100
     surface              = DarkSurface,           // Slate-900
@@ -47,9 +47,9 @@ private val DarkColors = darkColorScheme(
     surfaceVariant       = DarkSurfaceVariant,    // Slate-800
     onSurfaceVariant     = DarkOnSurfaceVariant,  // Slate-400
     outline              = DarkOutline,           // Slate-600
-    outlineVariant       = Color(0xFF334155),     // Slate-700
-    inverseSurface       = Color(0xFFF1F5F9),
-    inverseOnSurface     = Color(0xFF0F172A),
+    outlineVariant       = Color(0xFF444444),     
+    inverseSurface       = Color(0xFFE0E0E0),
+    inverseOnSurface     = Color(0xFF000000),
     error                = ExpenseRose,
     onError              = Color(0xFFFFFFFF),
     errorContainer       = ExpenseRoseLight,
@@ -57,29 +57,29 @@ private val DarkColors = darkColorScheme(
 )
 
 // ════════════════════════════════════════════════
-//  Light Color Scheme — Paper White + Slate Borders
+//  Light Color Scheme — Pastel Mint + Pure White/Black
 // ════════════════════════════════════════════════
 private val LightColors = lightColorScheme(
-    primary              = Primary,              // Blue-500
+    primary              = Primary,              
     onPrimary            = OnPrimary,
-    primaryContainer     = PrimaryLight,         // Blue-100
-    onPrimaryContainer   = PrimaryDark,          // Blue-700
-    secondary            = AccentEmerald,        // Emerald-600
+    primaryContainer     = PrimaryLight,         
+    onPrimaryContainer   = PrimaryDark,          
+    secondary            = AccentEmerald,        
     onSecondary          = OnSecondary,
-    secondaryContainer   = AccentEmeraldLight,   // Emerald-50
-    onSecondaryContainer = AccentEmeraldDark,    // Emerald-700
+    secondaryContainer   = AccentEmeraldLight,   
+    onSecondaryContainer = AccentEmeraldDark,    
     tertiary             = WarningAmber,
-    onTertiary           = Color(0xFF0F172A),
-    background           = LightBackground,      // Slate-50
+    onTertiary           = Color(0xFFFFFFFF),
+    background           = LightBackground,      
     onBackground         = LightOnSurface,       // Slate-900
     surface              = LightSurface,         // Pure white
     onSurface            = LightOnSurface,       // Slate-900
-    surfaceVariant       = LightSurfaceVariant,  // Slate-100
-    onSurfaceVariant     = LightOnSurfaceVariant,// Slate-600
-    outline              = LightOutline,         // Slate-900
-    outlineVariant       = Color(0xFFCBD5E1),    // Slate-300
-    inverseSurface       = Color(0xFF0F172A),
-    inverseOnSurface     = Color(0xFFF1F5F9),
+    surfaceVariant       = LightSurfaceVariant,  
+    onSurfaceVariant     = LightOnSurfaceVariant,
+    outline              = LightOutline,         
+    outlineVariant       = Color(0xFF888888),    
+    inverseSurface       = Color(0xFF000000),
+    inverseOnSurface     = Color(0xFFFFFFFF),
     error                = ExpenseRose,
     onError              = Color(0xFFFFFFFF),
     errorContainer       = ExpenseRoseLight,

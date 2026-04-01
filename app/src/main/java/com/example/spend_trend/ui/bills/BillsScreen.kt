@@ -31,7 +31,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun BillsScreen() {
+fun BillsScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
     val viewModel: BillViewModel = viewModel(
@@ -51,10 +51,19 @@ fun BillsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MonoWhite)
-            .padding(horizontal = Dimens.SpacingLg),
-        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
+        com.example.spend_trend.ui.components.BlockTopBar(
+            title = "Bills",
+            onBack = onBack
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+        ) {
         Spacer(Modifier.height(Dimens.SpacingSm))
 
         // ── Noir Custom TabRow ──
@@ -107,6 +116,7 @@ fun BillsScreen() {
             }
         }
     }
+}
 }
 
 @Composable

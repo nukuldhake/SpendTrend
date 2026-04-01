@@ -13,6 +13,9 @@ import com.example.spend_trend.ui.theme.ThemePreferences
 import com.example.spend_trend.ui.theme.SpendTrendTheme
 import com.example.spend_trend.data.UserPreferences
 import com.example.spend_trend.ui.auth.AuthViewModel
+import com.example.spend_trend.ui.auth.AuthViewModelFactory
+import com.example.spend_trend.data.repository.SyncRepository
+import com.example.spend_trend.data.AppDatabase
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.sms.SmsSyncManager
 import java.util.concurrent.TimeUnit
@@ -80,7 +83,11 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    val authViewModel: AuthViewModel = viewModel()
+                    val db = com.example.spend_trend.data.AppDatabase.getDatabase(this@MainActivity)
+                    val syncRepo = com.example.spend_trend.data.repository.SyncRepository(this@MainActivity, db)
+                    val authViewModel: AuthViewModel = viewModel(
+                        factory = AuthViewModelFactory(syncRepo)
+                    )
                     AppScaffold(authViewModel = authViewModel)
                 }
             }

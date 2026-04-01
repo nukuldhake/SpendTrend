@@ -7,6 +7,7 @@ import com.example.spend_trend.data.BillEntity
 import com.example.spend_trend.data.TransactionEntity
 import com.example.spend_trend.data.repository.BillRepository
 import com.example.spend_trend.data.repository.BudgetRepository
+import com.example.spend_trend.data.repository.GoalRepository
 import com.example.spend_trend.data.repository.TransactionRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ import com.example.spend_trend.ui.theme.formatWithComma
 class DashboardViewModel(
     private val txRepository: TransactionRepository,
     private val budgetRepository: BudgetRepository,
-    private val billRepository: BillRepository
+    private val billRepository: BillRepository,
+    private val goalRepository: GoalRepository
 ) : ViewModel() {
 
     val pendingBills: StateFlow<List<BillEntity>> = billRepository.pendingBills
@@ -110,6 +112,16 @@ class DashboardViewModel(
             initialValue = MonthSummary(0, 0, 0)
         )
 
+    val totalBalance: StateFlow<Int> = txRepository.allTransactions
+        .map { entities ->
+            entities.sumOf { it.amount }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = 0
+        )
+
     // Combined Budget usage percentage
     val budgetProgress: StateFlow<Float> = combine(txRepository.allTransactions, budgetRepository.getAllActive()) { txs, budgets ->
         val now = LocalDate.now()
@@ -122,6 +134,16 @@ class DashboardViewModel(
 
         if (totalBudget > 0) (totalSpent / totalBudget).coerceIn(0f, 1f) else 0f
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    // Total Goal Progress percentage across all active goals
+    val goalsProgress: StateFlow<Float> = goalRepository.allGoals
+        .map { goals: List<com.example.spend_trend.data.GoalEntity> ->
+            if (goals.isEmpty()) return@map 0f
+            val totalTarget = goals.sumOf { it.targetAmount }
+            val totalSaved = goals.sumOf { it.currentAmount }
+            if (totalTarget > 0) (totalSaved / totalTarget).toFloat().coerceIn(0f, 1f) else 0f
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 
     // Data-driven motivational tip
     val motivationalTip: StateFlow<String> = combine(
@@ -180,12 +202,13 @@ data class MonthSummary(val income: Int, val expense: Int, val net: Int)
 class DashboardViewModelFactory(
     private val txRepository: TransactionRepository,
     private val budgetRepository: BudgetRepository,
-    private val billRepository: BillRepository
+    private val billRepository: BillRepository,
+    private val goalRepository: GoalRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return DashboardViewModel(txRepository, budgetRepository, billRepository) as T
+            return DashboardViewModel(txRepository, budgetRepository, billRepository, goalRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

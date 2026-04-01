@@ -38,25 +38,44 @@ import com.example.spend_trend.ui.theme.*
 
 @Composable
 fun DashboardScreen(
-    onViewAllTransactions: () -> Unit = {}
+    onViewAllTransactions: () -> Unit = {},
+    onNavigateToAddTx: () -> Unit = {},
+    onNavigateToBills: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
+    onNavigateToGoals: () -> Unit = {},
+    onOpenDrawer: () -> Unit = {}
 ) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModelFactory(
             txRepository = TransactionRepository(db.transactionDao()),
             budgetRepository = BudgetRepository(db.budgetDao()),
-            billRepository = com.example.spend_trend.data.repository.BillRepository(db.billDao())
+            billRepository = com.example.spend_trend.data.repository.BillRepository(db.billDao()),
+            goalRepository = com.example.spend_trend.data.repository.GoalRepository(db.goalDao())
         )
     )
 
     val recentTx by viewModel.recentTransactions.collectAsState(initial = emptyList())
     val summary by viewModel.currentMonthSummary.collectAsState(initial = MonthSummary(0, 0, 0))
-    val todaySpend by viewModel.todayTransactions.collectAsState(initial = 0)
     val monthlyTrend by viewModel.monthlyTrend.collectAsState(initial = emptyList())
-    val budgetProgress by viewModel.budgetProgress.collectAsState(initial = 0f)
     val pendingBills by viewModel.pendingBills.collectAsState(initial = emptyList())
-    val motivationalTip by viewModel.motivationalTip.collectAsState()
-    val balance = summary.net
+    val goalsProgress by viewModel.goalsProgress.collectAsState(initial = 0f)
+    val totalBalance by viewModel.totalBalance.collectAsState()
+    
+    val balance = totalBalance
+    val expense = summary.expense
+
+    val trendData = remember(monthlyTrend) {
+        if (monthlyTrend.size >= 2) {
+            val current = monthlyTrend.last()
+            val previous = monthlyTrend[monthlyTrend.size - 2]
+            if (previous > 0) {
+                val pct = ((current - previous).toFloat() / previous * 100).toInt()
+                val diff = current - previous
+                Pair(if (pct >= 0) "+$pct%" else "$pct%", if (diff >= 0) "+₹${diff.formatWithComma()}" else "-₹${(-diff).formatWithComma()}")
+            } else Pair("0%", "₹0")
+        } else Pair("0%", "₹0")
+    }
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -68,18 +87,45 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
         contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
     ) {
-        // ── Noir Hero Balance Card ──
+        // ── Top Bar Header (Profile & Greeting) ──
         item {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { -60 }
-            ) {
+            AnimatedVisibility(visible = visible, enter = fadeIn(tween(500))) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = Dimens.SpacingMd),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurface)
+                        }
+                        Spacer(Modifier.width(Dimens.SpacingSm))
+                        Column {
+                            val userName = com.example.spend_trend.data.UserPreferences.getName() ?: "User"
+                            Text("Hi $userName,", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                            Text("Welcome back", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(Dimens.AvatarMd)
+                            .background(Primary, androidx.compose.foundation.shape.CircleShape)
+                            .border(Dimens.BorderWidthStandard, MonoBlack, androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = MonoBlack)
+                    }
+                }
+            }
+        }
+
+        // ── Curvy Hero Balance Card ──
+        item {
+            AnimatedVisibility(visible = visible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { -60 }) {
                 HeroBalanceCard(
                     balance = balance,
-                    income = summary.income,
-                    expense = summary.expense,
-                    onIncomeClick = onViewAllTransactions,
-                    onExpenseClick = onViewAllTransactions
+                    trendPct = trendData.first,
+                    trendVal = trendData.second
                 )
             }
         }
@@ -96,146 +142,61 @@ fun DashboardScreen(
             }
         }
 
-        // ── Quick Stats Row (Today + Budget) ──
+        // ── Action Grid (4 distinct curvy buttons) ──
         item {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(500, delayMillis = 100)) + slideInVertically(tween(400, delayMillis = 100)) { -30 }
-            ) {
+            AnimatedVisibility(visible = visible, enter = fadeIn(tween(500, delayMillis = 100)) + slideInVertically(tween(400, delayMillis = 100)) { -30 }) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
                 ) {
-                    BlockCard(modifier = Modifier.weight(1f)) {
+                    ActionSquircle(label = "Add Tx", icon = Icons.Default.Add, backgroundColor = CategoryColors.Green, onClick = onNavigateToAddTx, modifier = Modifier.weight(1f))
+                    ActionSquircle(label = "Bills", icon = Icons.Default.Receipt, backgroundColor = CategoryColors.Yellow, onClick = onNavigateToBills, modifier = Modifier.weight(1f))
+                    ActionSquircle(label = "Goals", icon = Icons.Default.Star, backgroundColor = CategoryColors.Purple, onClick = onNavigateToGoals, modifier = Modifier.weight(1f))
+                    ActionSquircle(label = "Analytics", icon = Icons.Default.PieChart, backgroundColor = CategoryColors.Orange, onClick = onNavigateToAnalytics, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+
+        // ── Side-by-Side Insights (Graph & Goals) ──
+        item {
+            AnimatedVisibility(visible = visible, enter = fadeIn(tween(500, delayMillis = 200))) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max), // Important to match heights
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+                ) {
+                    BlockCard(modifier = Modifier.weight(1f).fillMaxHeight(), hasShadow = false) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Today,
-                                contentDescription = "Today's spending",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(Modifier.width(Dimens.SpacingSm))
-                            Column {
-                                Text(
-                                    "TODAY".uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = if (todaySpend >= 0) "+₹${todaySpend.formatWithComma()}"
-                                    else "−₹${(-todaySpend).formatWithComma()}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = if (todaySpend >= 0) IncomeGreen else ExpenseRose,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Activity", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
+                        Spacer(Modifier.weight(1f))
+                        NoirSparkLine(data = monthlyTrend, modifier = Modifier.height(60.dp).fillMaxWidth().padding(vertical = Dimens.SpacingSm))
+                        Spacer(Modifier.weight(1f))
+                        Text("₹${expense.formatWithComma()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                        Text("↗ +1.7%", style = MaterialTheme.typography.labelSmall, color = MonoBlack.copy(alpha = 0.6f))
                     }
 
-                    BlockCard(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    BlockCard(modifier = Modifier.weight(1f).fillMaxHeight(), hasShadow = false) {
+                        Text("Goals\nAchieved", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.weight(1f))
+                        Text("${(goalsProgress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.height(Dimens.SpacingXs))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .background(MonoGrayLight, androidx.compose.foundation.shape.CircleShape)
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
-                                    .padding(4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "${(budgetProgress * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp
-                                )
-                            }
-                            Spacer(Modifier.width(Dimens.SpacingSm))
-                            Column {
-                                Text(
-                                    "BUDGET".uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    "USED",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                                    .fillMaxWidth(goalsProgress)
+                                    .fillMaxHeight()
+                                    .background(MonoBlack, androidx.compose.foundation.shape.CircleShape)
+                            )
                         }
                     }
                 }
-            }
-        }
-
-        // ── Spending Trend Chart ──
-        item {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(500, delayMillis = 200))
-            ) {
-                BlockCard(modifier = Modifier.fillMaxWidth(), hasShadow = true) {
-                    Text(
-                        "TREND".uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        "LAST 6 MONTHS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(Dimens.SpacingLg))
-                    NoirSparkLine(
-                        data = monthlyTrend,
-                        modifier = Modifier
-                            .height(Dimens.ChartHeight)
-                            .fillMaxWidth()
-                    )
-                }
-            }
-        }
-
-        // ── Income / Expense Cards ──
-        item {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(500, delayMillis = 300))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
-                ) {
-                    StatCard(
-                        label = "Income",
-                        amount = summary.income,
-                        icon = Icons.Default.ArrowDownward,
-                        accentColor = IncomeGreen,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        label = "Expense",
-                        amount = summary.expense,
-                        icon = Icons.Default.ArrowUpward,
-                        accentColor = ExpenseRose,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-
-        // ── Motivational Tip (data-driven) ──
-        item {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(500, delayMillis = 350))
-            ) {
-                MotivationalTip(tipText = motivationalTip)
             }
         }
 
@@ -270,81 +231,92 @@ fun DashboardScreen(
 }
 
 // ════════════════════════════════════════════════
-//  Hero Balance Card — Stark Noir
+//  Hero Balance Card — Playful Curvy
 // ════════════════════════════════════════════════
 @Composable
 private fun HeroBalanceCard(
     balance: Int,
-    income: Int,
-    expense: Int,
-    onIncomeClick: () -> Unit = {},
-    onExpenseClick: () -> Unit = {}
+    trendPct: String,
+    trendVal: String
 ) {
     BlockCard(
         modifier = Modifier.fillMaxWidth(),
-        backgroundColor = MonoBlack,
+        backgroundColor = MonoWhite,
         borderColor = MonoBlack,
         hasShadow = true,
-        shadowColor = Primary
+        shadowColor = MonoBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusXl) // Huge Curve!
     ) {
-        Text(
-            "AVAILABLE BALANCE",
-            style = MaterialTheme.typography.labelSmall,
-            color = MonoWhite.copy(alpha = 0.7f)
-        )
-        Spacer(Modifier.height(Dimens.SpacingXs))
-        Text(
-            text = "₹${balance.formatWithComma()}",
-            style = MaterialTheme.typography.displayMedium,
-            color = MonoWhite,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(Modifier.height(Dimens.SpacingXxl))
-
-        // Income / Expense pills — 0dp Sharp
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
-        ) {
-            // Income Box
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(1.dp, MonoWhite.copy(alpha = 0.3f))
-                    .clickable(onClick = onIncomeClick)
-                    .padding(Dimens.SpacingMd)
-            ) {
-                Column {
-                    Text("INCOME", style = MaterialTheme.typography.labelSmall, color = IncomeGreen)
-                    Text(
-                        "₹${income.formatWithComma()}",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MonoWhite,
-                        fontWeight = FontWeight.Bold
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Column {
+                Text(
+                    "Your Balance is",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MonoBlack.copy(alpha = 0.8f)
+                )
+                Spacer(Modifier.height(Dimens.SpacingXs))
+                Text(
+                    text = "₹${balance.formatWithComma()}",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MonoBlack,
+                    fontWeight = FontWeight.Black
+                )
+                Spacer(Modifier.height(Dimens.SpacingXs))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val isPositive = !trendPct.startsWith("-")
+                    val trendColor = if (isPositive) CategoryColors.Green else ExpenseRose
+                    Icon(
+                        imageVector = if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown, 
+                        contentDescription = null, 
+                        tint = trendColor, 
+                        modifier = Modifier.size(16.dp)
                     )
-                }
-            }
-
-            // Expense Box
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(1.dp, MonoWhite.copy(alpha = 0.3f))
-                    .clickable(onClick = onExpenseClick)
-                    .padding(Dimens.SpacingMd)
-            ) {
-                Column {
-                    Text("EXPENSE", style = MaterialTheme.typography.labelSmall, color = ExpenseRose)
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        "₹${expense.formatWithComma()}",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MonoWhite,
+                        text = "$trendPct ($trendVal)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = trendColor,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
+    }
+}
+
+// ════════════════════════════════════════════════
+//  Action Squircle (Grid items)
+// ════════════════════════════════════════════════
+@Composable
+private fun ActionSquircle(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    backgroundColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        BlockCard(
+            modifier = Modifier.aspectRatio(1f),
+            backgroundColor = backgroundColor,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg),
+            hasShadow = false
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // Circle inside squircle
+                Box(
+                    modifier = Modifier.size(32.dp).border(1.dp, MonoBlack, androidx.compose.foundation.shape.CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = label, tint = MonoBlack, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+        Spacer(Modifier.height(Dimens.SpacingSm))
+        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -427,41 +399,36 @@ private fun NoirSparkLine(data: List<Int>, modifier: Modifier = Modifier) {
 // ════════════════════════════════════════════════
 @Composable
 private fun BlockTransactionRow(tx: DashboardTx) {
-    BlockCard(modifier = Modifier.fillMaxWidth()) {
+    BlockCard(
+        modifier = Modifier.fillMaxWidth().height(72.dp),
+        backgroundColor = CategoryColors.getColorForCategory(tx.category),
+        shape = androidx.compose.foundation.shape.CircleShape // Pill shape for transactions!
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
-                    .padding(8.dp),
+                    .background(MonoWhite, androidx.compose.foundation.shape.CircleShape)
+                    .border(Dimens.BorderWidthStandard, MonoBlack, androidx.compose.foundation.shape.CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = categoryIcon(tx.category),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = MonoBlack,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(Modifier.width(Dimens.SpacingMd))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    tx.title.uppercase(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    tx.category,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(tx.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MonoBlack, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tx.category, style = MaterialTheme.typography.labelSmall, color = MonoBlack.copy(alpha = 0.7f))
             }
             Text(
                 text = if (tx.amount < 0) "−₹${(-tx.amount).formatWithComma()}" else "+₹${tx.amount.formatWithComma()}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
-                color = if (tx.amount < 0) ExpenseRose else IncomeGreen
+                color = MonoBlack
             )
         }
     }

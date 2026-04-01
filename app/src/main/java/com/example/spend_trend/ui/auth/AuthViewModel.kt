@@ -10,8 +10,14 @@ import com.example.spend_trend.data.network.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import kotlinx.coroutines.launch
+import androidx.lifecycle.ViewModelProvider
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
-class AuthViewModel : ViewModel() {
+import com.example.spend_trend.data.repository.SyncRepository
+import kotlinx.coroutines.flow.firstOrNull
+
+class AuthViewModel(private val syncRepository: SyncRepository? = null) : ViewModel() {
     var email by mutableStateOf("")
     var name by mutableStateOf("")
     var password by mutableStateOf("")
@@ -44,11 +50,15 @@ class AuthViewModel : ViewModel() {
         
         viewModelScope.launch {
             try {
+                val sanitizedEmail = email.trim().lowercase()
                 auth.signUpWith(Email) {
-                    email = this@AuthViewModel.email
+                    email = sanitizedEmail
                     password = this@AuthViewModel.password
+                    data = buildJsonObject {
+                        put("name", name)
+                    }
                 }
-                UserPreferences.registerUser(email, password, name)
+                UserPreferences.registerUser(sanitizedEmail, password, name)
                 com.example.spend_trend.ui.theme.ThemePreferences.updateUserName(name)
                 isLoading = false
                 onSuccess()
@@ -84,29 +94,36 @@ class AuthViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                val sanitizedEmail = email.trim().lowercase()
                 auth.signInWith(Email) {
-                    email = this@AuthViewModel.email
+                    email = sanitizedEmail
                     password = this@AuthViewModel.password
                 }
                 
                 val user = auth.currentUserOrNull()
+                val metadataName = user?.userMetadata?.get("name")?.toString()?.removeSurrounding("\"")
                 
                 // If login is successful but user isn't 'locally registered' (e.g. reinstall),
                 // we restore their profile states.
-                if (!UserPreferences.isRegistered() && user != null) {
+                if (user != null) {
+                    val finalName = metadataName ?: "User"
                     UserPreferences.registerUser(
                         email = user.email ?: email,
                         password = password, 
-                        name = "User" // Supabase metadata can also store name, but let's keep it simple
+                        name = finalName
                     )
+                    com.example.spend_trend.ui.theme.ThemePreferences.updateUserName(finalName)
                 }
+                
+                // Trigger background sync
+                syncRepository?.syncAllFromCloud()
                 
                 UserPreferences.setLoggedIn(true)
                 isLoading = false
                 onSuccess()
             } catch (e: Exception) {
                 isLoading = false
-                error = "Invalid Email or Password"
+                error = e.localizedMessage ?: "Invalid Email or Password"
             }
         }
     }
@@ -120,5 +137,15 @@ class AuthViewModel : ViewModel() {
             error = "Invalid PIN"
             return false
         }
+    }
+}
+
+class AuthViewModelFactory(private val syncRepository: SyncRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return AuthViewModel(syncRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

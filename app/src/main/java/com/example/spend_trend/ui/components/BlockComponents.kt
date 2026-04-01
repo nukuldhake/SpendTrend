@@ -15,6 +15,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import com.example.spend_trend.ui.theme.*
 
 /**
@@ -31,18 +35,19 @@ fun BlockCard(
     borderWidth: Dp = Dimens.BorderWidthStandard,
     hasShadow: Boolean = false,
     shadowColor: Color = Primary,               // Accent shadow — configurable
+    shape: Shape = RoundedCornerShape(Dimens.RadiusLg),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val baseModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
 
     Box(modifier = baseModifier) {
-        // Hard Shadow Layer (Offset block — now with accent color)
         if (hasShadow) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .offset(x = Dimens.ShadowOffset, y = Dimens.ShadowOffset)
-                    .background(shadowColor)
+                    .background(shadowColor, shape)
+                    .border(BorderStroke(borderWidth, borderColor), shape) // Hard edge on shadow too
             )
         }
 
@@ -50,8 +55,9 @@ fun BlockCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(backgroundColor)
-                .border(BorderStroke(width = borderWidth, color = borderColor))
+                .background(backgroundColor, shape)
+                .border(BorderStroke(width = borderWidth, color = borderColor), shape)
+                .clip(shape) // Clip content inside the curves
                 .padding(Dimens.CardPadding),
             content = content
         )
@@ -81,8 +87,9 @@ fun BlockButton(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .offset(x = Dimens.SpacingXxs, y = Dimens.SpacingXxs)
-                    .background(accentColor)
+                    .offset(x = Dimens.SpacingXs, y = Dimens.SpacingXs) // Slightly larger offset for playfulness
+                    .background(accentColor, CircleShape)
+                    .border(BorderStroke(Dimens.BorderWidthStandard, MonoBlack), CircleShape)
             )
         }
 
@@ -90,8 +97,9 @@ fun BlockButton(
             modifier = Modifier
                 .fillMaxSize()
                 .height(Dimens.MinTouchTarget)
-                .background(if (enabled && !isLoading) containerColor else containerColor.copy(alpha = 0.5f))
-                .border(BorderStroke(width = Dimens.BorderWidthStandard, color = borderColor))
+                .background(if (enabled && !isLoading) containerColor else containerColor.copy(alpha = 0.5f), CircleShape)
+                .border(BorderStroke(width = Dimens.BorderWidthStandard, color = borderColor), CircleShape)
+                .clip(CircleShape)
                 .clickable(enabled = enabled && !isLoading, onClick = onClick)
                 .padding(horizontal = Dimens.SpacingLg),
             contentAlignment = Alignment.Center
@@ -171,10 +179,12 @@ fun BlockChip(
 ) {
     Box(
         modifier = modifier
-            .border(Dimens.BorderWidthStandard, if (isSelected) selectedColor else MonoGrayLight)
-            .background(if (isSelected) selectedColor else MaterialTheme.colorScheme.surface)
+            .background(if (isSelected) selectedColor else MaterialTheme.colorScheme.surface, CircleShape)
+            .border(Dimens.BorderWidthStandard, if (isSelected) MonoBlack else MonoGrayMedium, CircleShape)
+            .clip(CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingSm)
+            .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingSm),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = text.uppercase(),
