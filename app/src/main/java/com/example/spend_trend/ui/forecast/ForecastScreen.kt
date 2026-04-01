@@ -5,12 +5,15 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.NeumorphicCard
+import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
 import com.example.spend_trend.data.model.ForecastInsight
 import com.example.spend_trend.data.model.InsightType
@@ -51,10 +54,10 @@ fun ForecastScreen() {
     val forecastData by viewModel.forecastData.collectAsState()
     
     val months = (0..5).map {
-        LocalDate.now().plusMonths(it.toLong()).format(DateTimeFormatter.ofPattern("MMM"))
+        LocalDate.now().plusMonths(it.toLong()).format(DateTimeFormatter.ofPattern("MMM")).uppercase()
     }
     val monthFullNames = (0..5).map {
-        LocalDate.now().plusMonths(it.toLong()).format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+        LocalDate.now().plusMonths(it.toLong()).format(DateTimeFormatter.ofPattern("MMMM yyyy")).uppercase()
     }
 
     val projectedYearEnd = if (forecastData.all { it == 0f }) 0 else (forecastData.last() * 12).roundToInt()
@@ -73,49 +76,57 @@ fun ForecastScreen() {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
     ) {
-        // ── Neumorphic Hero ──
-        NeumorphicCard(
+        // ── Noir Hero ──
+        BlockCard(
             modifier = Modifier.fillMaxWidth(),
-            elevation = 12.dp, // High elevation for hero
-            cornerRadius = Dimens.RadiusLg
+            backgroundColor = MonoBlack
         ) {
-            Column(modifier = Modifier.padding(Dimens.SpacingSm)) {
+            Column {
                 Text(
-                    "Linear Annual Run-Rate",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "LINEAR ANNUAL RUN-RATE",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MonoWhite.copy(alpha = 0.6f)
                 )
                 Spacer(Modifier.height(Dimens.SpacingXs))
                 Text(
                     "₹${projectedYearEnd.formatWithComma()}",
                     style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Black,
+                    color = MonoWhite
                 )
                 Spacer(Modifier.height(Dimens.SpacingSm))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        if (trendPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                        contentDescription = "Trend direction",
-                        tint = if (trendPercentage > 0) ExpenseRose else IncomeGreen,
-                        modifier = Modifier.size(Dimens.IconSm)
-                    )
-                    Spacer(Modifier.width(Dimens.SpacingXs))
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(if (trendPercentage > 0) ExpenseRose else IncomeGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (trendPercentage > 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                            contentDescription = null,
+                            tint = if (trendPercentage > 0) MonoBlack else MonoWhite,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(Dimens.SpacingSm))
                     Text(
-                        if (trendPercentage > 0) "+$trendPercentage% vs last year" else "$trendPercentage%",
-                        style = MaterialTheme.typography.bodyMedium,
+                        if (trendPercentage > 0) "+$trendPercentage% VS LAST YEAR" else "$trendPercentage% VS LAST YEAR",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
                         color = if (trendPercentage > 0) ExpenseRose else IncomeGreen
                     )
                 }
             }
         }
 
-        // ── Neumorphic Chart ──
-        NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+        // ── Forecast Chart ──
+        BlockCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                "Spending Forecast",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                "SPENDING FORECAST",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(Dimens.SpacingLg))
@@ -129,27 +140,45 @@ fun ForecastScreen() {
 
         // ── Tooltip ──
         if (selectedMonthIndex >= 0) {
-            NeumorphicCard(modifier = Modifier.fillMaxWidth(), isConcave = true, backgroundColor = MaterialTheme.colorScheme.background) {
-                Text(
-                    "${monthFullNames[selectedMonthIndex]} Projection",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    "₹${forecastData[selectedMonthIndex].roundToInt().formatWithComma()}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Primary
-                )
+            BlockCard(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = Primary
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            "PROJECTION FOR",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MonoBlack.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            monthFullNames[selectedMonthIndex],
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MonoBlack
+                        )
+                    }
+                    Text(
+                        "₹${forecastData[selectedMonthIndex].roundToInt().formatWithComma()}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MonoBlack
+                    )
+                }
             }
         }
 
         // ── Monthly Breakdown ──
         Text(
-            "Monthly Breakdown",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            "MONTHLY BREAKDOWN",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Row(
@@ -165,36 +194,45 @@ fun ForecastScreen() {
                     ((amount - prevAmount) / prevAmount * 100).roundToInt()
                 } else 0
 
-                NeumorphicCard(modifier = Modifier.width(130.dp), elevation = 4.dp) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                BlockCard(modifier = Modifier.width(140.dp)) {
+                    Column {
                         Text(
                             month,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MonoGrayMedium
                         )
                         Spacer(Modifier.height(Dimens.SpacingSm))
                         Text(
                             "₹${amount.formatWithComma()}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Primary
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MonoBlack
                         )
                         if (index > 0) {
-                            Spacer(Modifier.height(Dimens.SpacingXs))
+                            Spacer(Modifier.height(Dimens.SpacingSm))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                val indicatorColor = if (change > 0) ExpenseRose else if (change < 0) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                val indicatorColor = if (change > 0) ExpenseRose else if (change < 0) IncomeGreen else MonoGrayLight
                                 val indicatorIcon = if (change > 0) Icons.Default.ArrowUpward else if (change < 0) Icons.Default.ArrowDownward else Icons.Default.Remove
                                 
-                                Icon(
-                                    indicatorIcon,
-                                    contentDescription = "Change indicator",
-                                    tint = indicatorColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(indicatorColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        indicatorIcon,
+                                        contentDescription = null,
+                                        tint = if (change == 0) MonoBlack else MonoWhite,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(Dimens.SpacingXs))
                                 Text(
                                     "${if (change > 0) "+" else ""}$change%",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
                                     color = indicatorColor
                                 )
                             }
@@ -213,46 +251,42 @@ fun ForecastScreen() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "AI Spending Insights",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                "AI SPENDING INSIGHTS",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
             )
             
-            NeumorphicCard(
-                elevation = 2.dp,
-                cornerRadius = 12.dp,
-                isConcave = true,
-                backgroundColor = MaterialTheme.colorScheme.background,
-                modifier = Modifier.offset(y = (-2).dp)
+            Box(
+                modifier = Modifier
+                    .border(2.dp, MonoBlack)
+                    .background(MonoWhite)
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = Primary,
+                        tint = MonoBlack,
                         modifier = Modifier.size(12.dp)
                     )
-                    Spacer(Modifier.width(Dimens.SpacingXs))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        "Gemini",
+                        "GEMINI",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Primary
+                        fontWeight = FontWeight.Black,
+                        color = MonoBlack
                     )
                 }
             }
         }
 
         insights.forEach { insight ->
-            NeumorphicCard(modifier = Modifier.fillMaxWidth(), elevation = 4.dp) {
+            BlockCard(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val icon = when (insight.type) {
                         InsightType.POSITIVE -> Icons.Default.CheckCircle
-                        InsightType.NEGATIVE -> Icons.Default.TrendingUp
+                        InsightType.NEGATIVE -> Icons.AutoMirrored.Filled.TrendingUp
                         InsightType.WARNING -> Icons.Default.WarningAmber
                         else -> Icons.Default.Lightbulb
                     }
@@ -260,24 +294,39 @@ fun ForecastScreen() {
                         InsightType.POSITIVE -> IncomeGreen
                         InsightType.NEGATIVE -> ExpenseRose
                         InsightType.WARNING -> WarningAmber
-                        else -> Primary
+                        else -> MonoBlack
                     }
 
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .clip(CircleShape)
-                            .background(color.copy(alpha = 0.15f)),
+                            .background(color),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(Dimens.IconMd))
+                        Icon(
+                            icon, 
+                            contentDescription = null, 
+                            tint = if (color == MonoWhite) MonoBlack else MonoWhite, 
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                     
                     Spacer(Modifier.width(Dimens.SpacingMd))
                     
                     Column {
-                        Text(insight.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
-                        Text(insight.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            insight.title.uppercase(), 
+                            style = MaterialTheme.typography.labelSmall, 
+                            fontWeight = FontWeight.Black, 
+                            color = color
+                        )
+                        Text(
+                            insight.description.uppercase(), 
+                            style = MaterialTheme.typography.bodySmall, 
+                            fontWeight = FontWeight.Black,
+                            color = MonoGrayMedium,
+                            lineHeight = 16.sp
+                        )
                     }
                 }
             }
@@ -300,16 +349,15 @@ fun ForecastChart(
     )
     var selectedIndex by remember { mutableStateOf(-1) }
 
-    val lineColor = Secondary
-    val glowColor = Secondary.copy(alpha = 0.3f)
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
+    val lineColor = Primary
+    val gridColor = MonoGrayLight.copy(alpha = 0.4f)
 
     Column {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(Dimens.ChartHeight)
+                .background(MaterialTheme.colorScheme.surface)
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
                         val xStep = size.width / (data.size - 1)
@@ -331,32 +379,14 @@ fun ForecastChart(
             for (i in 0..4) {
                 val y = size.height * (i.toFloat() / 4)
                 drawLine(
-                    color = outlineVariant.copy(alpha = 0.15f),
+                    color = gridColor,
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
                     strokeWidth = 1.dp.toPx()
                 )
             }
 
-            // Gradient fill
-            val areaPath = Path().apply {
-                moveTo(0f, size.height)
-                data.forEachIndexed { index, value ->
-                    val x = xStep * index
-                    val y = size.height - ((value - minValue) * yScale * animatedProgress)
-                    lineTo(x, y)
-                }
-                lineTo(size.width, size.height)
-                close()
-            }
-            drawPath(
-                path = areaPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(lineColor.copy(alpha = 0.15f), Color.Transparent)
-                )
-            )
-
-            // Glow line
+            // Trend line (Noir style - sharp steps and solid line)
             val linePath = Path().apply {
                 data.forEachIndexed { index, value ->
                     val x = xStep * index
@@ -364,21 +394,37 @@ fun ForecastChart(
                     if (index == 0) moveTo(x, y) else lineTo(x, y)
                 }
             }
-            drawPath(path = linePath, color = glowColor, style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round))
-            drawPath(path = linePath, color = lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+            drawPath(
+                path = linePath, 
+                color = lineColor, 
+                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Butt)
+            )
 
-            // Points
+            // Dynamic points
             data.forEachIndexed { index, value ->
                 val x = xStep * index
                 val y = size.height - ((value - minValue) * yScale * animatedProgress)
                 val isSelected = index == selectedIndex
-                drawCircle(
-                    color = glowColor,
-                    radius = if (isSelected) 12.dp.toPx() else 8.dp.toPx(),
-                    center = Offset(x, y)
-                )
-                drawCircle(color = lineColor, radius = 5.dp.toPx(), center = Offset(x, y))
-                drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(x, y))
+                
+                if (isSelected) {
+                    drawRect(
+                        color = Primary,
+                        topLeft = Offset(x - 8.dp.toPx(), y - 8.dp.toPx()),
+                        size = androidx.compose.ui.geometry.Size(16.dp.toPx(), 16.dp.toPx())
+                    )
+                    drawRect(
+                        color = MonoBlack,
+                        topLeft = Offset(x - 6.dp.toPx(), y - 6.dp.toPx()),
+                        size = androidx.compose.ui.geometry.Size(12.dp.toPx(), 12.dp.toPx()),
+                        style = Stroke(width = Dimens.BorderWidthStandard.value)
+                    )
+                } else {
+                    drawRect(
+                        color = MonoBlack,
+                        topLeft = Offset(x - 4.dp.toPx(), y - 4.dp.toPx()),
+                        size = androidx.compose.ui.geometry.Size(8.dp.toPx(), 8.dp.toPx())
+                    )
+                }
             }
         }
 
@@ -393,7 +439,8 @@ fun ForecastChart(
                 Text(
                     label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = onSurfaceVariant,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )

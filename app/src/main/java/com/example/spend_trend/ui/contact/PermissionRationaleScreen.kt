@@ -1,6 +1,7 @@
 package com.example.spend_trend.ui.contact
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,13 +12,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.theme.*
 
 @Composable
 fun PermissionRationaleScreen(
@@ -27,12 +31,8 @@ fun PermissionRationaleScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B))
-                )
-            )
-            .padding(24.dp)
+            .background(MonoWhite)
+            .padding(Dimens.SpacingXxl)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -40,104 +40,112 @@ fun PermissionRationaleScreen(
             verticalArrangement = Arrangement.Center
         ) {
             // Icon Header
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Message,
-                contentDescription = null,
-                tint = Color(0xFF38BDF8),
-                modifier = Modifier.size(80.dp)
-            )
+            BlockCard(
+                modifier = Modifier.size(96.dp),
+                backgroundColor = Primary
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Message,
+                        contentDescription = null,
+                        tint = MonoWhite,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(Dimens.SpacingHuge))
             
             Text(
-                text = "Automate Your Tracking",
+                text = "AUTOMATE YOUR TRACKING",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
+                color = MonoBlack,
+                fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.SpacingLg))
             
             Text(
-                text = "SpendTrend works best when it can automatically log your expenses from bank SMS notifications.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.7f),
+                text = "SPENDTREND WORKS BEST WHEN IT CAN AUTOMATICALLY LOG YOUR EXPENSES FROM BANK SMS NOTIFICATIONS.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MonoGrayMedium,
                 textAlign = TextAlign.Center,
-                lineHeight = 24.sp
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.Black
             )
             
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(Dimens.Spacing3xl))
             
             // Feature List
-            RationaleItem(
-                icon = Icons.Default.Timeline,
-                title = "Real-time Insights",
-                description = "See your spending trends instantly as you spend."
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingXxl)) {
+                RationaleItem(
+                    icon = Icons.Default.Timeline,
+                    title = "REAL-TIME INSIGHTS",
+                    description = "SEE YOUR SPENDING TRENDS INSTANTLY AS YOU SPEND."
+                )
+                
+                RationaleItem(
+                    icon = Icons.Default.Security,
+                    title = "PRIVACY FIRST",
+                    description = "WE ONLY PARSE TRANSACTION SMS. DATA STAYS ON YOUR DEVICE."
+                )
+            }
             
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            RationaleItem(
-                icon = Icons.Default.Security,
-                title = "Privacy First",
-                description = "We only parse bank/transaction SMS. Your data stay on your device."
-            )
-            
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(Dimens.Spacing3xl + Dimens.SpacingXxl))
             
             // Buttons
-            Button(
+            BlockButton(
+                text = "ENABLE AUTO-TRACKING",
                 onClick = onGrantClick,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
-            ) {
-                Text("Enable Auto-Tracking", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
+                modifier = Modifier.fillMaxWidth().height(Dimens.MinTouchTarget)
+            )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.SpacingLg))
             
-            TextButton(onClick = onSkipClick) {
-                Text("I'll log manually for now", color = Color.White.copy(alpha = 0.5f))
-            }
+            BlockButton(
+                text = "LOG MANUALLY FOR NOW",
+                onClick = onSkipClick,
+                modifier = Modifier.fillMaxWidth(),
+                isPrimary = false
+            )
         }
     }
 }
 
 @Composable
-fun RationaleItem(icon: ImageVector, title: String, description: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = Color.White.copy(alpha = 0.05f)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color(0xFF38BDF8),
-                modifier = Modifier.padding(12.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.5f)
-            )
+private fun RationaleItem(icon: ImageVector, title: String, description: String) {
+    BlockCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(Dimens.MinTouchTarget).border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(Dimens.IconMd)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(Dimens.SpacingLg))
+            
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MonoBlack,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MonoGrayMedium,
+                    fontWeight = FontWeight.Black
+                )
+            }
         }
     }
 }
+
