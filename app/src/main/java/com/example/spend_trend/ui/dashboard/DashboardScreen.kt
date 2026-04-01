@@ -6,12 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -19,9 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -31,16 +29,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.repository.BudgetRepository
 import com.example.spend_trend.data.repository.TransactionRepository
-import com.example.spend_trend.ui.components.NeumorphicCard
-import com.example.spend_trend.ui.components.NeumorphicChip
+import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
-import androidx.compose.runtime.collectAsState
 
 @Composable
 fun DashboardScreen(
@@ -61,6 +55,7 @@ fun DashboardScreen(
     val monthlyTrend by viewModel.monthlyTrend.collectAsState(initial = emptyList())
     val budgetProgress by viewModel.budgetProgress.collectAsState(initial = 0f)
     val pendingBills by viewModel.pendingBills.collectAsState(initial = emptyList())
+    val motivationalTip by viewModel.motivationalTip.collectAsState()
     val balance = summary.net
 
     var visible by remember { mutableStateOf(false) }
@@ -73,19 +68,25 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
         contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
     ) {
-        // ── Gradient Hero Balance Card ──
+        // ── Noir Hero Balance Card ──
         item {
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { -60 }
             ) {
-                HeroBalanceCard(balance, summary.income, summary.expense)
+                HeroBalanceCard(
+                    balance = balance,
+                    income = summary.income,
+                    expense = summary.expense,
+                    onIncomeClick = onViewAllTransactions,
+                    onExpenseClick = onViewAllTransactions
+                )
             }
         }
 
         // ── Upcoming Bills Alert ──
         if (pendingBills.isNotEmpty()) {
-            val billsToNotify = pendingBills.filter { 
+            val billsToNotify = pendingBills.filter {
                 it.dueDateMillis <= System.currentTimeMillis() + (86400000 * 3) // Due within 3 days
             }
             if (billsToNotify.isNotEmpty()) {
@@ -105,26 +106,18 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
                 ) {
-                    NeumorphicCard(modifier = Modifier.weight(1f)) {
+                    BlockCard(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(Primary.copy(alpha = 0.10f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Today,
-                                    contentDescription = "Today's spending",
-                                    tint = Primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
+                            Icon(
+                                Icons.Default.Today,
+                                contentDescription = "Today's spending",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
                             Spacer(Modifier.width(Dimens.SpacingSm))
                             Column {
                                 Text(
-                                    "Today",
+                                    "TODAY".uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -132,7 +125,7 @@ fun DashboardScreen(
                                     text = if (todaySpend >= 0) "+₹${todaySpend.formatWithComma()}"
                                     else "−₹${(-todaySpend).formatWithComma()}",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Black,
                                     color = if (todaySpend >= 0) IncomeGreen else ExpenseRose,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -141,27 +134,33 @@ fun DashboardScreen(
                         }
                     }
 
-                    NeumorphicCard(modifier = Modifier.weight(1f)) {
+                    BlockCard(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                progress = { budgetProgress },
-                                modifier = Modifier.size(32.dp),
-                                color = Primary,
-                                trackColor = Primary.copy(alpha = 0.10f),
-                                strokeWidth = 4.dp,
-                                strokeCap = StrokeCap.Round
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                                    .padding(4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "${(budgetProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 10.sp
+                                )
+                            }
                             Spacer(Modifier.width(Dimens.SpacingSm))
                             Column {
                                 Text(
-                                    "Budget",
+                                    "BUDGET".uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    "${(budgetProgress * 100).toInt()}% used",
+                                    "USED",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Black,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -179,20 +178,20 @@ fun DashboardScreen(
                 visible = visible,
                 enter = fadeIn(tween(500, delayMillis = 200))
             ) {
-                NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+                BlockCard(modifier = Modifier.fillMaxWidth(), hasShadow = true) {
                     Text(
-                        "Spending Trend",
+                        "TREND".uppercase(),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "Last 6 months",
-                        style = MaterialTheme.typography.bodySmall,
+                        "LAST 6 MONTHS",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(Dimens.SpacingLg))
-                    PremiumSparkLine(
+                    NoirSparkLine(
                         data = monthlyTrend,
                         modifier = Modifier
                             .height(Dimens.ChartHeight)
@@ -230,13 +229,13 @@ fun DashboardScreen(
             }
         }
 
-        // ── Motivational Tip ──
+        // ── Motivational Tip (data-driven) ──
         item {
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(500, delayMillis = 350))
             ) {
-                MotivationalTip()
+                MotivationalTip(tipText = motivationalTip)
             }
         }
 
@@ -248,13 +247,13 @@ fun DashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Recent",
+                    "RECENT",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 TextButton(onClick = onViewAllTransactions) {
-                    Text("View all", color = Primary)
+                    Text("VIEW ALL", color = Primary, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -264,112 +263,85 @@ fun DashboardScreen(
             item { EmptyState() }
         } else {
             itemsIndexed(recentTx, key = { index, item -> "dashboard_${item.id}_${index}" }) { _, tx ->
-                NeumorphicTransactionRow(tx)
+                BlockTransactionRow(tx)
             }
         }
     }
 }
 
 // ════════════════════════════════════════════════
-//  Hero Balance Card — Gradient
+//  Hero Balance Card — Stark Noir
 // ════════════════════════════════════════════════
 @Composable
-private fun HeroBalanceCard(balance: Int, income: Int, expense: Int) {
-    NeumorphicCard(
+private fun HeroBalanceCard(
+    balance: Int,
+    income: Int,
+    expense: Int,
+    onIncomeClick: () -> Unit = {},
+    onExpenseClick: () -> Unit = {}
+) {
+    BlockCard(
         modifier = Modifier.fillMaxWidth(),
-        elevation = 12.dp, // Deeper extrusion for hero
-        cornerRadius = Dimens.RadiusLg
+        backgroundColor = MonoBlack,
+        borderColor = MonoBlack,
+        hasShadow = true,
+        shadowColor = Primary
     ) {
-        Column(modifier = Modifier.padding(Dimens.SpacingSm)) {
-            Text(
-                "Available Balance",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(Dimens.SpacingXs))
-            Text(
-                text = "₹${balance.formatWithComma()}",
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontSize = 42.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(Dimens.SpacingXxl))
+        Text(
+            "AVAILABLE BALANCE",
+            style = MaterialTheme.typography.labelSmall,
+            color = MonoWhite.copy(alpha = 0.7f)
+        )
+        Spacer(Modifier.height(Dimens.SpacingXs))
+        Text(
+            text = "₹${balance.formatWithComma()}",
+            style = MaterialTheme.typography.displayMedium,
+            color = MonoWhite,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(Dimens.SpacingXxl))
 
-            // Income / Expense pills
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+        // Income / Expense pills — 0dp Sharp
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+        ) {
+            // Income Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .border(1.dp, MonoWhite.copy(alpha = 0.3f))
+                    .clickable(onClick = onIncomeClick)
+                    .padding(Dimens.SpacingMd)
             ) {
-                // Income pill
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(Dimens.RadiusSm))
-                        .background(IncomeGreen.copy(alpha = 0.10f))
-                        .padding(horizontal = Dimens.SpacingMd, vertical = Dimens.SpacingMd)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.ArrowDownward,
-                            contentDescription = "Income",
-                            tint = IncomeGreen,
-                            modifier = Modifier.size(Dimens.IconSm)
-                        )
-                        Spacer(Modifier.width(Dimens.SpacingSm))
-                        Column {
-                            Text(
-                                "Income",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                "₹${income.formatWithComma()}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = IncomeGreen,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+                Column {
+                    Text("INCOME", style = MaterialTheme.typography.labelSmall, color = IncomeGreen)
+                    Text(
+                        "₹${income.formatWithComma()}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MonoWhite,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            }
 
-                // Expense pill
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(Dimens.RadiusSm))
-                        .background(ExpenseRose.copy(alpha = 0.10f))
-                        .padding(horizontal = Dimens.SpacingMd, vertical = Dimens.SpacingMd)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.ArrowUpward,
-                            contentDescription = "Expense",
-                            tint = ExpenseRose,
-                            modifier = Modifier.size(Dimens.IconSm)
-                        )
-                        Spacer(Modifier.width(Dimens.SpacingSm))
-                        Column {
-                            Text(
-                                "Expense",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                "₹${expense.formatWithComma()}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ExpenseRose,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+            // Expense Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .border(1.dp, MonoWhite.copy(alpha = 0.3f))
+                    .clickable(onClick = onExpenseClick)
+                    .padding(Dimens.SpacingMd)
+            ) {
+                Column {
+                    Text("EXPENSE", style = MaterialTheme.typography.labelSmall, color = ExpenseRose)
+                    Text(
+                        "₹${expense.formatWithComma()}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MonoWhite,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -377,7 +349,7 @@ private fun HeroBalanceCard(balance: Int, income: Int, expense: Int) {
 }
 
 // ════════════════════════════════════════════════
-//  Stat Card (Income / Expense)
+//  Noir Stat Card
 // ════════════════════════════════════════════════
 @Composable
 private fun StatCard(
@@ -387,58 +359,31 @@ private fun StatCard(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    NeumorphicCard(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = "$label indicator",
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(Modifier.width(Dimens.SpacingSm))
-            Column {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "₹${amount.formatWithComma()}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+    BlockCard(modifier = modifier) {
+        Column {
+            Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(Dimens.SpacingSm))
+            Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "₹${amount.formatWithComma()}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = accentColor
+            )
         }
     }
 }
 
 // ════════════════════════════════════════════════
-//  Premium Bézier Spark Line
+//  Noir Spark Line (Sharp Corners)
 // ════════════════════════════════════════════════
 @Composable
-private fun PremiumSparkLine(data: List<Int>, modifier: Modifier = Modifier) {
+private fun NoirSparkLine(data: List<Int>, modifier: Modifier = Modifier) {
     if (data.isEmpty()) return
 
     val max = data.maxOrNull() ?: 0
     val min = data.minOrNull() ?: 0
     val range = (max - min).coerceAtLeast(1)
-
-    val lineColor = Primary
-    val glowColor = Primary.copy(alpha = 0.20f)
-    val fillBrush = Brush.verticalGradient(
-        colors = listOf(Primary.copy(alpha = 0.10f), Color.Transparent)
-    )
 
     Canvas(modifier = modifier) {
         val w = size.width
@@ -446,133 +391,90 @@ private fun PremiumSparkLine(data: List<Int>, modifier: Modifier = Modifier) {
         val stepX = w / (data.size - 1).coerceAtLeast(1)
 
         val points = data.mapIndexed { i, v ->
-            val x = i * stepX
-            val y = h - ((v - min) / range.toFloat() * (h * 0.85f)) - h * 0.05f
-            x to y
+            val norm = (v - min) / range.toFloat()
+            androidx.compose.ui.geometry.Offset(
+                x = i * stepX,
+                y = h - (norm * h)
+            )
         }
 
-        // Build smooth Bézier path
-        val linePath = Path().apply {
-            moveTo(points[0].first, points[0].second)
+        val path = Path().apply {
+            moveTo(points[0].x, points[0].y)
             for (i in 1 until points.size) {
-                val prev = points[i - 1]
-                val curr = points[i]
-                val cpx = (prev.first + curr.first) / 2f
-                cubicTo(cpx, prev.second, cpx, curr.second, curr.first, curr.second)
+                lineTo(points[i].x, points[i].y)
             }
         }
 
-        // Gradient fill
-        val fillPath = Path().apply {
-            addPath(linePath)
-            lineTo(points.last().first, h)
-            lineTo(points.first().first, h)
-            close()
-        }
-        drawPath(path = fillPath, brush = fillBrush)
-
-        // Glow line (wider, transparent)
         drawPath(
-            path = linePath,
-            color = glowColor,
-            style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+            path = path,
+            color = Primary,
+            style = Stroke(width = Dimens.ChartStrokeWidth.value.dp.toPx(), cap = StrokeCap.Square)
         )
 
-        // Main line
-        drawPath(
-            path = linePath,
-            color = lineColor,
-            style = Stroke(width = Dimens.ChartStrokeWidth.toPx(), cap = StrokeCap.Round)
-        )
-
-        // Glow dots at each point
-        points.forEach { (x, y) ->
-            drawCircle(color = glowColor, radius = 8.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-            drawCircle(color = lineColor, radius = Dimens.ChartDotRadius.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-            drawCircle(color = Color.White, radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
+        // Draw data points as squares (accent)
+        points.forEach { pt ->
+            drawRect(
+                color = Primary,
+                topLeft = androidx.compose.ui.geometry.Offset(pt.x - 5.dp.toPx(), pt.y - 5.dp.toPx()),
+                size = androidx.compose.ui.geometry.Size(10.dp.toPx(), 10.dp.toPx())
+            )
         }
     }
 }
 
 // ════════════════════════════════════════════════
-//  Glass Transaction Row
+//  Block Transaction Row
 // ════════════════════════════════════════════════
 @Composable
-private fun NeumorphicTransactionRow(tx: DashboardTx) {
-    NeumorphicCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = Dimens.RadiusSm,
-        isConcave = false // popped out
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+private fun BlockTransactionRow(tx: DashboardTx) {
+    BlockCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = 0.10f)),
+                    .size(40.dp)
+                    .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                    .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = categoryIcon(tx.category),
-                    contentDescription = "${tx.category} category",
-                    tint = Primary,
-                    modifier = Modifier.size(Dimens.IconMd)
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(Modifier.width(Dimens.SpacingMd))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    tx.title,
+                    tx.title.uppercase(),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     tx.category,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
                 text = if (tx.amount < 0) "−₹${(-tx.amount).formatWithComma()}" else "+₹${tx.amount.formatWithComma()}",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
                 color = if (tx.amount < 0) ExpenseRose else IncomeGreen
             )
         }
     }
 }
 
-// ════════════════════════════════════════════════
-//  Motivational Tip
-// ════════════════════════════════════════════════
 @Composable
-private fun MotivationalTip() {
-    val tips = listOf(
-        "You saved ₹1,200 more this month… keep going ♡",
-        "Small steps today lead to big freedom tomorrow…",
-        "Every rupee tracked is a rupee controlled…",
-        "One mindful choice at a time… you've got this…"
-    )
-    val randomTip = remember { tips.random() }
-
-    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Tertiary.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("💡", fontSize = 18.sp)
-            }
+private fun MotivationalTip(tipText: String) {
+    BlockCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            Text("!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Primary)
             Spacer(Modifier.width(Dimens.SpacingMd))
             Text(
-                text = randomTip,
+                text = tipText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -580,91 +482,39 @@ private fun MotivationalTip() {
     }
 }
 
-// ════════════════════════════════════════════════
-//  Empty State
-// ════════════════════════════════════════════════
 @Composable
 private fun EmptyState() {
-    NeumorphicCard(modifier = Modifier.fillMaxWidth()) {
+    BlockCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.SpacingHuge),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingHuge),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                Icons.Default.ReceiptLong,
-                contentDescription = "No transactions",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.size(Dimens.IconHero)
-            )
+            Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(48.dp))
             Spacer(Modifier.height(Dimens.SpacingLg))
-            Text(
-                "No transactions yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "Add your first transaction to see insights",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                textAlign = TextAlign.Center
-            )
+            Text("NO DATA", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
         }
     }
 }
 
 @Composable
 private fun UpcomingBillAlert(count: Int, total: Int) {
-    NeumorphicCard(
+    BlockCard(
         modifier = Modifier.fillMaxWidth(),
-        backgroundColor = MaterialTheme.colorScheme.surface,
-        elevation = 4.dp
+        backgroundColor = ExpenseRose,
+        borderColor = MonoBlack
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(ExpenseRose.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.PriorityHigh,
-                    contentDescription = null,
-                    tint = ExpenseRose,
-                    modifier = Modifier.size(Dimens.IconMd)
-                )
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.PriorityHigh, contentDescription = null, tint = MonoWhite)
             Spacer(Modifier.width(Dimens.SpacingMd))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "$count Upcoming Bills",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = ExpenseRose
-                )
-                Text(
-                    "Total amount: ₹${total.formatWithComma()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column {
+                Text("$count BILLS DUE", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MonoWhite)
+                Text("TOTAL: ₹${total.formatWithComma()}", style = MaterialTheme.typography.labelSmall, color = MonoWhite.copy(alpha = 0.8f))
             }
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(16.dp)
-            )
         }
     }
 }
 
-private fun Int.formatWithComma(): String = "%,d".format(this)
+
 
 // ════════════════════════════════════════════════
 //  Factory & Helpers

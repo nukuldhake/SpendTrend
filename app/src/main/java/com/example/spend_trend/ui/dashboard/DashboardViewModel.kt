@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.ZoneOffset
+import com.example.spend_trend.ui.theme.formatWithComma
 
 class DashboardViewModel(
     private val txRepository: TransactionRepository,
@@ -121,6 +122,56 @@ class DashboardViewModel(
 
         if (totalBudget > 0) (totalSpent / totalBudget).coerceIn(0f, 1f) else 0f
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    // Data-driven motivational tip
+    val motivationalTip: StateFlow<String> = combine(
+        currentMonthSummary,
+        monthlyTrend,
+        budgetProgress
+    ) { summary, trend, budget ->
+        generateTip(summary, trend, budget)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "Every rupee tracked is a rupee controlled…"
+    )
+
+    private fun generateTip(summary: MonthSummary, trend: List<Int>, budgetUsage: Float): String {
+        // Priority: specific data-driven tips first, then generic fallback
+        val savingsRate = if (summary.income > 0) {
+            ((summary.income - summary.expense).toFloat() / summary.income * 100).toInt()
+        } else 0
+
+        // Month-over-month comparison
+        if (trend.size >= 2) {
+            val current = trend.last()
+            val previous = trend[trend.size - 2]
+            if (previous > 0 && current < previous) {
+                val saved = previous - current
+                return "You spent ₹${saved.formatWithComma()} less than last month — great progress! 🎉"
+            }
+        }
+
+        // Budget alert
+        if (budgetUsage > 0.85f) {
+            val pct = (budgetUsage * 100).toInt()
+            return "Heads up: you've used $pct% of your budget this month. Consider slowing down 💡"
+        }
+
+        // Savings rate feedback
+        if (savingsRate > 30) {
+            return "Impressive! You're saving $savingsRate% of your income this month 🌟"
+        }
+        if (savingsRate in 10..30) {
+            return "You're saving $savingsRate% this month — aim for 30% to build your safety net 📈"
+        }
+        if (summary.income > 0 && savingsRate < 10) {
+            return "Your savings rate is $savingsRate% — small cuts add up over time 🌱"
+        }
+
+        // No-data fallback
+        return "Start tracking your expenses to unlock personalized insights ✨"
+    }
 }
 
 data class DashboardTx(val id: Int, val title: String, val category: String, val amount: Int)
