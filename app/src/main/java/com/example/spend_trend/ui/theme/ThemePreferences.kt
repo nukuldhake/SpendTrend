@@ -6,11 +6,15 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
+/**
+ * Theme-only preferences: theme mode.
+ * App-wide settings (userName, autoTracking, thresholds)
+ * remain here for backward compat but should migrate to AppPreferences.
+ */
 object ThemePreferences {
     private lateinit var prefs: SharedPreferences
     private const val PREF_NAME = "spend_trend_prefs"
@@ -29,15 +33,17 @@ object ThemePreferences {
     var autoTrackingEnabled by mutableStateOf(false)
         private set
 
-    var lowThreshold by mutableIntStateOf(80)
+    var lowThreshold by mutableStateOf(80)
         private set
 
-    var highThreshold by mutableIntStateOf(100)
+    var highThreshold by mutableStateOf(100)
         private set
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        themeMode = ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name)
+        themeMode = ThemeMode.valueOf(
+            prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name
+        )
         userName = prefs.getString(KEY_USER_NAME, "Friend") ?: "Friend"
         autoTrackingEnabled = prefs.getBoolean(KEY_AUTO_TRACKING, false)
         lowThreshold = prefs.getInt(KEY_LOW_THRESHOLD, 80)
@@ -66,14 +72,5 @@ object ThemePreferences {
             .putInt(KEY_LOW_THRESHOLD, low)
             .putInt(KEY_HIGH_THRESHOLD, high)
             .apply()
-    }
-
-    @Composable
-    fun isDarkTheme(): Boolean {
-        return when (themeMode) {
-            ThemeMode.LIGHT -> false
-            ThemeMode.DARK -> true
-            ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        }
     }
 }

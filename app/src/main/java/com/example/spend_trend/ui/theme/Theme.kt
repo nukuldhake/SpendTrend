@@ -1,9 +1,10 @@
 package com.example.spend_trend.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.AbsoluteCutCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -11,72 +12,78 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 // ════════════════════════════════════════════════
-//  Dark Color Scheme — The Hero
+//  Shapes — Stark 0dp corners for Neo-Brutal
 // ════════════════════════════════════════════════
-private val DarkColors = darkColorScheme(
-    primary             = Primary,
-    onPrimary           = OnPrimary,
-    primaryContainer    = PrimaryContainer,
-    onPrimaryContainer  = OnPrimaryContainer,
-    secondary           = Secondary,
-    onSecondary         = OnSecondary,
-    secondaryContainer  = SecondaryContainer,
-    onSecondaryContainer = OnSecondaryContainer,
-    tertiary            = Tertiary,
-    onTertiary          = OnTertiary,
-    tertiaryContainer   = TertiaryContainer,
-    onTertiaryContainer = OnTertiaryContainer,
-    error               = Error,
-    onError             = OnError,
-    errorContainer      = ErrorContainer,
-    onErrorContainer    = OnErrorContainer,
-    background          = DarkBackground,
-    onBackground        = DarkOnSurface,
-    surface             = DarkSurface,
-    onSurface           = DarkOnSurface,
-    surfaceVariant      = DarkSurfaceVariant,
-    onSurfaceVariant    = DarkOnSurfaceVariant,
-    outline             = DarkOutline,
-    outlineVariant      = DarkOutlineVariant,
-    inverseSurface      = LightSurface,
-    inverseOnSurface    = LightOnSurface,
-    inversePrimary      = Primary,
+val SpendTrendShapes = Shapes(
+    extraSmall = AbsoluteCutCornerShape(0.dp),
+    small      = AbsoluteCutCornerShape(0.dp),
+    medium     = AbsoluteCutCornerShape(0.dp),
+    large      = AbsoluteCutCornerShape(0.dp),
+    extraLarge = AbsoluteCutCornerShape(0.dp)
 )
 
 // ════════════════════════════════════════════════
-//  Light Color Scheme
+//  Dark Color Scheme — Deep Slate
+// ════════════════════════════════════════════════
+private val DarkColors = darkColorScheme(
+    primary              = Primary,              // Blue-500
+    onPrimary            = OnPrimary,
+    primaryContainer     = PrimaryDark,           // Blue-700
+    onPrimaryContainer   = PrimaryLight,          // Blue-100
+    secondary            = AccentEmerald,         // Emerald-600
+    onSecondary          = OnSecondary,
+    secondaryContainer   = AccentEmeraldDark,     // Emerald-700
+    onSecondaryContainer = AccentEmeraldLight,    // Emerald-50
+    tertiary             = WarningAmber,
+    onTertiary           = Color(0xFF0F172A),
+    background           = DarkBackground,        // Slate-950
+    onBackground         = DarkOnSurface,         // Slate-100
+    surface              = DarkSurface,           // Slate-900
+    onSurface            = DarkOnSurface,         // Slate-100
+    surfaceVariant       = DarkSurfaceVariant,    // Slate-800
+    onSurfaceVariant     = DarkOnSurfaceVariant,  // Slate-400
+    outline              = DarkOutline,           // Slate-600
+    outlineVariant       = Color(0xFF334155),     // Slate-700
+    inverseSurface       = Color(0xFFF1F5F9),
+    inverseOnSurface     = Color(0xFF0F172A),
+    error                = ExpenseRose,
+    onError              = Color(0xFFFFFFFF),
+    errorContainer       = ExpenseRoseLight,
+    onErrorContainer     = Color(0xFF881337),
+)
+
+// ════════════════════════════════════════════════
+//  Light Color Scheme — Paper White + Slate Borders
 // ════════════════════════════════════════════════
 private val LightColors = lightColorScheme(
-    primary             = Color(0xFF0D9488), // Teal 600
-    onPrimary           = Color(0xFFFFFFFF),
-    primaryContainer    = Color(0xFFCCFBF1),
-    onPrimaryContainer  = Color(0xFF134E4A),
-    secondary           = Color(0xFF2563EB), // Blue 600
-    onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = Color(0xFFDBEAFE),
-    onSecondaryContainer = Color(0xFF1E3A8A),
-    tertiary            = Color(0xFF7C3AED), // Violet 600
-    onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFEDE9FE),
-    onTertiaryContainer = Color(0xFF4C1D95),
-    error               = Color(0xFFDC2626),
-    onError             = Color(0xFFFFFFFF),
-    errorContainer      = Color(0xFFFEE2E2),
-    onErrorContainer    = Color(0xFF991B1B),
-    background          = LightBackground,
-    onBackground        = LightOnSurface,
-    surface             = LightSurface,
-    onSurface           = LightOnSurface,
-    surfaceVariant      = LightSurfaceVariant,
-    onSurfaceVariant    = LightOnSurfaceVariant,
-    outline             = LightOutline,
-    outlineVariant      = LightOutlineVariant,
-    inverseSurface      = InverseSurface,
-    inverseOnSurface    = InverseOnSurface,
-    inversePrimary      = InversePrimary,
+    primary              = Primary,              // Blue-500
+    onPrimary            = OnPrimary,
+    primaryContainer     = PrimaryLight,         // Blue-100
+    onPrimaryContainer   = PrimaryDark,          // Blue-700
+    secondary            = AccentEmerald,        // Emerald-600
+    onSecondary          = OnSecondary,
+    secondaryContainer   = AccentEmeraldLight,   // Emerald-50
+    onSecondaryContainer = AccentEmeraldDark,    // Emerald-700
+    tertiary             = WarningAmber,
+    onTertiary           = Color(0xFF0F172A),
+    background           = LightBackground,      // Slate-50
+    onBackground         = LightOnSurface,       // Slate-900
+    surface              = LightSurface,         // Pure white
+    onSurface            = LightOnSurface,       // Slate-900
+    surfaceVariant       = LightSurfaceVariant,  // Slate-100
+    onSurfaceVariant     = LightOnSurfaceVariant,// Slate-600
+    outline              = LightOutline,         // Slate-900
+    outlineVariant       = Color(0xFFCBD5E1),    // Slate-300
+    inverseSurface       = Color(0xFF0F172A),
+    inverseOnSurface     = Color(0xFFF1F5F9),
+    error                = ExpenseRose,
+    onError              = Color(0xFFFFFFFF),
+    errorContainer       = ExpenseRoseLight,
+    onErrorContainer     = Color(0xFF881337),
 )
 
 @Composable
@@ -91,7 +98,6 @@ fun SpendTrendTheme(
 
     val colorScheme = if (darkTheme) DarkColors else LightColors
 
-    // Edge-to-edge: tint status bar & nav bar
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -108,6 +114,7 @@ fun SpendTrendTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = SpendTrendShapes,
         content = content
     )
 }
