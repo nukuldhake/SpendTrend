@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
@@ -25,13 +27,18 @@ import com.example.spend_trend.data.repository.BillRepository
 import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun BillsScreen(onBack: () -> Unit = {}) {
+fun BillsScreen(
+    onBack: () -> Unit = {}, 
+    onMenuClick: (() -> Unit)? = null,
+    onAddClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
     val viewModel: BillViewModel = viewModel(
@@ -48,30 +55,48 @@ fun BillsScreen(onBack: () -> Unit = {}) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("PENDING", "HISTORY")
 
-    Column(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        com.example.spend_trend.ui.components.BlockTopBar(
-            title = "Bills",
-            onBack = onBack
-        )
-
+            .background(MaterialTheme.colorScheme.background),
+        topBar = {
+            com.example.spend_trend.ui.components.BlockTopBar(
+                title = "Bills",
+                onBack = if (onMenuClick == null) onBack else null,
+                onMenuClick = onMenuClick
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddClick,
+                containerColor = MonoBlack,
+                contentColor = MonoWhite,
+                shape = RoundedCornerShape(Dimens.RadiusLg),
+                modifier = Modifier
+                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusLg))
+                    .neoShadow(RoundedCornerShape(Dimens.RadiusLg))
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Bill")
+            }
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = Dimens.SpacingLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
-        Spacer(Modifier.height(Dimens.SpacingSm))
+            Spacer(Modifier.height(Dimens.SpacingMd))
 
-        // ── Noir Custom TabRow ──
+            // ── Noir Custom TabRow ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(2.dp, MonoBlack)
-                .background(MonoWhite)
+                .height(IntrinsicSize.Min)
+                .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusFull))
+                .background(MonoWhite, RoundedCornerShape(Dimens.RadiusFull))
+                .clip(RoundedCornerShape(Dimens.RadiusFull))
         ) {
             tabs.forEachIndexed { index, title ->
                 Box(
@@ -90,7 +115,7 @@ fun BillsScreen(onBack: () -> Unit = {}) {
                     )
                 }
                 if (index < tabs.size - 1) {
-                    Box(modifier = Modifier.width(2.dp).fillMaxHeight().background(MonoBlack))
+                    Box(modifier = Modifier.width(Dimens.BorderWidthStandard).fillMaxHeight().background(MonoBlack))
                 }
             }
         }

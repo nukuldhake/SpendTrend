@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
@@ -193,27 +194,18 @@ fun AddBillScreen(
         Spacer(Modifier.weight(1f))
 
         // ── Register Button ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(if (isValid) MonoBlack else MonoGrayLight)
-                .border(2.dp, MonoBlack)
-                .clickable(enabled = isValid) {
-                    if (selectedCategory != null) {
-                        val millis = dueDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                        viewModel.addBill(title, amount, selectedCategory!!, millis)
-                        onBack()
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "REGISTER BILL",
-                fontWeight = FontWeight.Black,
-                color = if (isValid) MonoWhite else MonoGrayMedium
-            )
-        }
+        BlockButton(
+            text = "REGISTER BILL",
+            onClick = {
+                if (selectedCategory != null) {
+                    val millis = dueDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    viewModel.addBill(title, amount, selectedCategory!!, millis)
+                    onBack()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(Dimens.MinTouchTarget),
+            enabled = isValid
+        )
         
         Spacer(Modifier.height(Dimens.SpacingHuge))
     }

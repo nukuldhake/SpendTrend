@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 
 @Composable
@@ -96,8 +97,8 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = viewModel.name,
                         onValueChange = { viewModel.name = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = androidx.compose.ui.graphics.RectangleShape,
+                        modifier = Modifier.fillMaxWidth().neoShadow(),
+                        shape = RoundedCornerShape(Dimens.RadiusLg),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
@@ -114,7 +115,7 @@ fun RegisterScreen(
                         onValueChange = { viewModel.email = it },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        shape = androidx.compose.ui.graphics.RectangleShape,
+                        shape = RoundedCornerShape(Dimens.RadiusLg),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
