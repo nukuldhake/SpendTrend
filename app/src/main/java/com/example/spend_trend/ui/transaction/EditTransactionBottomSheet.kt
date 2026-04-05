@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 import java.time.Instant
 import java.time.LocalDate
@@ -109,9 +110,9 @@ fun EditTransactionBottomSheet(
                     prefix = { Text(if (isIncome) "+" else "−", fontWeight = FontWeight.Black) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                     textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().neoShadow(),
                     singleLine = true,
-                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
                         unfocusedBorderColor = MonoGrayLight
@@ -126,8 +127,8 @@ fun EditTransactionBottomSheet(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    modifier = Modifier.fillMaxWidth().neoShadow(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
                         unfocusedBorderColor = MonoGrayLight

@@ -30,7 +30,10 @@ import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit = {}) {
+fun SettingsScreen(
+    onBack: () -> Unit = {},
+    onLogout: () -> Unit = {}
+) {
     val context = LocalContext.current
     val viewModel: TransactionViewModel = viewModel(
         factory = TransactionViewModelFactory(
@@ -53,12 +56,9 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
     ) {
         BlockTopBar(
             title = "SETTINGS",
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
-                }
-            }
+            onBack = onBack
         )
+        Spacer(Modifier.height(Dimens.SpacingMd))
 
         Column(
             modifier = Modifier
@@ -169,7 +169,7 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
                             OutlinedTextField(
                                 value = ThemePreferences.themeMode.name, onValueChange = {}, readOnly = true,
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = themeExpanded) },
-                                modifier = Modifier.width(135.dp).menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                                modifier = Modifier.width(135.dp).menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true).neoShadow(),
                                 shape = RectangleShape,
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Primary,
@@ -197,7 +197,7 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
                             OutlinedTextField(
                                 value = selectedCurrency, onValueChange = {}, readOnly = true,
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                modifier = Modifier.width(120.dp).menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                                modifier = Modifier.width(120.dp).menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true).neoShadow(),
                                 shape = RectangleShape,
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Primary,
@@ -259,9 +259,11 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
                     text = "LOGOUT",
                     onClick = {
                         coroutineScope.launch {
-                            auth.signOut()
+                            try {
+                                SupabaseClient.client.auth.signOut()
+                            } catch (e: Exception) {}
                             UserPreferences.setLoggedIn(false)
-                            onBack()
+                            onLogout()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
