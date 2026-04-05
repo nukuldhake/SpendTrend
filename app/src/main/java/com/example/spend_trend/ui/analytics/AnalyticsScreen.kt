@@ -32,8 +32,8 @@ import com.example.spend_trend.data.repository.TransactionRepository
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.components.BlockCard
-import com.example.spend_trend.ui.theme.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.spend_trend.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -161,7 +161,7 @@ fun AnalyticsScreen(onBack: () -> Unit = {}, onMenuClick: (() -> Unit)? = null) 
                     if (topMerchants.isEmpty()) {
                         EmptyDataPlaceHolder()
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)) {
                             topMerchants.forEach { m ->
                                 MerchantItem(m.merchant.uppercase(), "₹${m.amount.toInt()}")
                             }

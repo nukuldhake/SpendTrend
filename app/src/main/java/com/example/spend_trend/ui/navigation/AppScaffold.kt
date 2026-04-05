@@ -58,6 +58,9 @@ import com.example.spend_trend.ui.transaction.TransactionHistoryScreen
 import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import io.github.jan.supabase.gotrue.auth
 
 @Composable
 fun AppScaffold(
@@ -104,15 +107,27 @@ fun AppScaffold(
         else -> Screen.Dashboard.route
     }
 
-    val performLogout = {
+    val performLogout: (Boolean) -> Unit = { isSystemLogout ->
         scope.launch {
             drawerState.close()
             try {
                 com.example.spend_trend.data.network.SupabaseClient.client.auth.signOut()
             } catch (e: Exception) {}
-            UserPreferences.logout()
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }
+            
+            if (isSystemLogout) {
+                // wiping all data
+                withContext(Dispatchers.IO) {
+                    db.clearAllTables()
+                }
+                UserPreferences.clearAll()
+                navController.navigate(Screen.Register.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            } else {
+                UserPreferences.logout()
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }
@@ -160,7 +175,7 @@ fun AppScaffold(
                         navController.navigate(Screen.Settings.route)
                     }
                     DrawerItem(Icons.AutoMirrored.Filled.Logout, "LOGOUT") {
-                        performLogout()
+                        performLogout(false)
                     }
                 }
             }
@@ -306,13 +321,13 @@ fun AppScaffold(
                     composable(Screen.Profile.route) {
                         ProfileScreen(
                             onBack = { navController.popBackStack() },
-                            onLogout = performLogout
+                            onLogout = { performLogout(true) }
                         )
                     }
                     composable(Screen.Settings.route) {
                         SettingsScreen(
                             onBack = { navController.popBackStack() },
-                            onLogout = performLogout
+                            onLogout = { performLogout(false) }
                         )
                     }
                     composable(Screen.Help.route) {

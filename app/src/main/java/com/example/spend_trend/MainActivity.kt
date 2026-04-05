@@ -60,8 +60,12 @@ class MainActivity : ComponentActivity() {
         
         // SMS sync is now deferred to a background WorkManager job
         // instead of blocking onCreate with lifecycleScope.launch
-        if (hasSmsPermissions() && !UserPreferences.isSmsSyncDone()) {
-            scheduleSmsSyncWork()
+        // Ensure auto-tracking is enabled if permissions are already granted
+        if (hasSmsPermissions()) {
+            ThemePreferences.updateAutoTracking(true)
+            if (!UserPreferences.isSmsSyncDone()) {
+                scheduleSmsSyncWork()
+            }
         }
 
         // Initialize reactive permission state
@@ -133,10 +137,14 @@ class MainActivity : ComponentActivity() {
      * This replaces the old approach of syncing directly in lifecycleScope,
      * which would re-trigger on every rotation and app restart.
      */
+    /**
+     * Schedules a one-time background SMS sync.
+     */
     private fun scheduleSmsSyncWork() {
         lifecycleScope.launch {
             val manager = SmsSyncManager(this@MainActivity)
-            manager.syncLast30Days()
+            // Sync last 90 days for better coverage on first run
+            manager.sync(daysBack = 90)
             UserPreferences.setSmsSyncDone(true)
         }
     }

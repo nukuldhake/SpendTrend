@@ -168,7 +168,6 @@ fun ProfileScreen(
             BlockButton(
                 text = "SYSTEM LOGOUT",
                 onClick = {
-                    UserPreferences.logout()
                     onLogout()
                 },
                 modifier = Modifier.fillMaxWidth(),

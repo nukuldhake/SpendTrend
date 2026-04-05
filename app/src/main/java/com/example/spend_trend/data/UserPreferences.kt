@@ -32,6 +32,7 @@ object UserPreferences {
             putString(KEY_USER_PASSWORD, password)
             putString(KEY_USER_NAME, name)
             putLong(KEY_MEMBER_SINCE, System.currentTimeMillis())
+            putBoolean(KEY_SMS_SYNC_DONE, false)
             apply()
         }
     }
@@ -69,6 +70,10 @@ object UserPreferences {
     fun logout() {
         prefs.edit().putBoolean(KEY_IS_LOGGED_IN, false).apply()
         // Supabase signout is async, we handle it in the UI or let it be.
+    }
+
+    fun clearAll() {
+        prefs.edit().clear().apply()
     }
 
     private const val KEY_SMS_SYNC_DONE = "sms_sync_done"

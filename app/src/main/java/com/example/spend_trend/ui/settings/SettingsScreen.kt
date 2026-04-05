@@ -80,8 +80,8 @@ fun SettingsScreen(
                         val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
                             androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
                         ) { permissions ->
-                            val granted = permissions.getOrDefault(android.Manifest.permission.RECEIVE_SMS, false)
-                            ThemePreferences.updateAutoTracking(granted)
+                            val allGranted = permissions.entries.all { it.value }
+                            ThemePreferences.updateAutoTracking(allGranted)
                         }
 
                         Switch(
@@ -249,6 +249,26 @@ fun SettingsScreen(
                     } else {
                         Text("SIGN IN TO ENABLE CLOUD SYNC", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
                     }
+
+                    Spacer(Modifier.height(Dimens.SpacingMd))
+                    HorizontalDivider(thickness = Dimens.DividerThickness, color = MonoGrayLight)
+                    Spacer(Modifier.height(Dimens.SpacingMd))
+
+                    Text("MISSED TRANSACTIONS?", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.height(Dimens.SpacingSm))
+                    BlockButton(
+                        text = "RE-SYNC LOCAL SMS",
+                        onClick = {
+                            coroutineScope.launch {
+                                val manager = com.example.spend_trend.data.sms.SmsSyncManager(context)
+                                Toast.makeText(context, "RUNNING DEEP SYNC...", Toast.LENGTH_SHORT).show()
+                                val result = manager.sync(daysBack = 180) // Deep sync: 6 months
+                                Toast.makeText(context, "SYNCED ${result.first} TRANSACTIONS", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        isPrimary = false
+                    )
                 }
             }
 
@@ -258,13 +278,7 @@ fun SettingsScreen(
                 BlockButton(
                     text = "LOGOUT",
                     onClick = {
-                        coroutineScope.launch {
-                            try {
-                                SupabaseClient.client.auth.signOut()
-                            } catch (e: Exception) {}
-                            UserPreferences.setLoggedIn(false)
-                            onLogout()
-                        }
+                        onLogout()
                     },
                     modifier = Modifier.fillMaxWidth(),
                     isPrimary = true

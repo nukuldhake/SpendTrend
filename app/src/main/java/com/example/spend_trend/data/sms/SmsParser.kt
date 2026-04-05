@@ -66,10 +66,10 @@ object SmsParser {
         Pattern.compile("(?i)due\\s+date\\s+is\\s+([a-z]{3,9}\\s+\\d{1,2}[,\\s]+\\d{2,4})")
     )
 
-    private val LOSS_KEYWORDS = listOf("spent", "paid", "debited", "withdrawal", "sent", "sent to", "towards", "txn", "purchase", "dr", "payment of", "via upi")
-    private val GAIN_KEYWORDS = listOf("credited", "received", "deposited", "refund", "added to", "cashback", "salary", "cr", "income")
-    private val BALANCE_KEYWORDS = listOf("available balance", "bal", "available limit", "outstanding", "bal in a/c")
-    private val EXCLUSION_KEYWORDS = listOf("otp", "verification", "code", "cvv", "secret", "is due", "bill amount", "due on", "security")
+    private val LOSS_KEYWORDS = listOf("spent", "paid", "debited", "debit", "withdrawal", "sent", "sent to", "towards", "txn", "purchase", "dr", "payment of", "via upi", "transferred to", "transfer to")
+    private val GAIN_KEYWORDS = listOf("credited", "credit", "received", "deposited", "refund", "added to", "cashback", "salary", "cr", "income", "transferred from", "transfer from")
+    private val BALANCE_KEYWORDS = listOf("available balance", "bal", "available limit", "outstanding", "bal in a/c", "account balance")
+    private val EXCLUSION_KEYWORDS = listOf("otp", "verification", "code", "cvv", "secret", "is due", "bill amount", "due on", "security", "warning", "login", "alert")
 
     // ──────────────── CORE PARSING LOGIC ────────────────
 
@@ -212,7 +212,7 @@ object SmsParser {
 
     private fun isTransactionMessage(msg: String): Boolean {
         // High confidence indicators that signify a banking/payment SMS
-        val indicators = listOf("rs", "inr", "₹", "upi", "vpa", "txn", "spent", "paid", "debited", "credited")
+        val indicators = listOf("rs", "inr", "₹", "upi", "vpa", "txn", "spent", "paid", "debited", "credited", "debit", "credit", "dr", "cr", "amt", "amount", "transfer", "withdrawal")
         
         // 1. Must have at least one currency indicator
         if (!indicators.any { msg.contains(it) }) return false
