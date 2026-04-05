@@ -34,7 +34,8 @@ import java.time.LocalDate
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionHistoryScreen(
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    onMenuClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: TransactionViewModel = viewModel(
@@ -82,7 +83,12 @@ fun TransactionHistoryScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         BlockTopBar(
-            title = "LEDGER",
+            title = "HISTORY",
+            navigationIcon = {
+                IconButton(onClick = onMenuClick) {
+                    Icon(Icons.Default.Menu, null, tint = MonoBlack)
+                }
+            },
             actions = {
                 IconButton(onClick = { showRangePicker = true }) {
                     Icon(Icons.Default.FilterList, null, tint = MonoBlack)
@@ -92,6 +98,8 @@ fun TransactionHistoryScreen(
                 }
             }
         )
+
+        Spacer(Modifier.height(Dimens.SpacingMd))
 
         Column(
             modifier = Modifier
@@ -293,7 +301,6 @@ fun SwipeableTransactionRow(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .border(1.dp, MonoBlack)
                     .background(color)
                     .padding(horizontal = Dimens.SpacingXxl),
                 contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) 

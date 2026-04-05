@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -26,6 +28,7 @@ import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.components.BlockTopBar
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -99,6 +102,12 @@ fun AddTransactionScreen(
                     modifier = Modifier.fillMaxWidth().height(Dimens.MinTouchTarget)
                 )
             }
+        },
+        topBar = {
+            BlockTopBar(
+                title = "NEW RECORD",
+                onBack = onDismiss
+            )
         }
     ) { padding ->
         Column(
@@ -109,10 +118,7 @@ fun AddTransactionScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
-            BlockTopBar(
-                title = "NEW RECORD",
-                onBack = onDismiss
-            )
+            Spacer(Modifier.height(Dimens.SpacingMd))
 
             // Income / Expense Switcher (Noir Style)
             Row(
@@ -151,7 +157,7 @@ fun AddTransactionScreen(
                     value = description,
                     onValueChange = { description = it },
                     placeholder = { Text("WHAT FOR?", color = MonoGrayMedium) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().neoShadow(androidx.compose.ui.graphics.RectangleShape),
                     shape = androidx.compose.ui.graphics.RectangleShape,
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -174,7 +180,7 @@ fun AddTransactionScreen(
                     onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) amountText = it },
                     placeholder = { Text("0.00", color = MonoGrayMedium) },
                     prefix = { Text(if (isIncome) "+" else "−", fontWeight = FontWeight.Black) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().neoShadow(androidx.compose.ui.graphics.RectangleShape),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     shape = androidx.compose.ui.graphics.RectangleShape,
                     singleLine = true,
@@ -302,6 +308,6 @@ fun CategoryPickerDialog(
         },
         confirmButton = {},
         containerColor = MonoWhite,
-        shape = androidx.compose.ui.graphics.RectangleShape
+        shape = RoundedCornerShape(Dimens.RadiusLg)
     )
 }
