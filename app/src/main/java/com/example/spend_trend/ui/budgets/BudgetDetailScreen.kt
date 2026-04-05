@@ -52,24 +52,27 @@ fun BudgetDetailScreen(
         else -> MonoBlack
     }
 
-    Column(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MonoWhite)
-            .statusBarsPadding()
-            .padding(horizontal = Dimens.SpacingLg, vertical = Dimens.SpacingLg),
-        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
-    ) {
-        BlockTopBar(
-            title = b.category.uppercase(),
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MonoBlack)
-                }
-            }
-        )
+            .background(MonoWhite),
+        topBar = {
+            BlockTopBar(
+                title = b.category.uppercase(),
+                onBack = onBack
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+        ) {
+            Spacer(Modifier.height(Dimens.SpacingMd))
 
-        // ── Block Hero Card ──
+            // ── Block Hero Card ──
         BlockCard(
             modifier = Modifier.fillMaxWidth(),
             backgroundColor = MonoBlack
@@ -207,9 +210,9 @@ fun BudgetDetailScreen(
         }
 
         Spacer(Modifier.height(Dimens.SpacingHuge))
+        }
     }
 
-    // ── Edit Bottom Sheet ──
     if (showEditSheet) {
         ModalBottomSheet(
             onDismissRequest = { showEditSheet = false },

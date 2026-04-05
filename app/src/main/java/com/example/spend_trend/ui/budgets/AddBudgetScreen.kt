@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.theme.*
@@ -183,30 +184,17 @@ fun AddBudgetScreen(
         Spacer(Modifier.weight(1f))
 
         // ── Save Button ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(if (isValid) MonoBlack else MonoGrayLight)
-                .border(2.dp, MonoBlack)
-                .clickable(enabled = isValid) {
-                    if (category != null) {
-                        viewModel.addBudget(category, limitValue)
-                        onBack()
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Check, null, tint = if (isValid) MonoWhite else MonoGrayMedium)
-                Spacer(Modifier.width(Dimens.SpacingSm))
-                Text(
-                    "CREATE BUDGET",
-                    fontWeight = FontWeight.Black,
-                    color = if (isValid) MonoWhite else MonoGrayMedium
-                )
-            }
-        }
+        BlockButton(
+            text = "CREATE BUDGET",
+            onClick = {
+                if (category != null) {
+                    viewModel.addBudget(category, limitValue)
+                    onBack()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(Dimens.MinTouchTarget),
+            enabled = isValid
+        )
 
         Spacer(Modifier.height(Dimens.SpacingHuge))
     }

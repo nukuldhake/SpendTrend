@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -27,22 +29,26 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.BudgetEntity
 import com.example.spend_trend.data.repository.BudgetRepository
+import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
 
 @Composable
 fun BudgetsScreen(
     onCardClick: (Int) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onMenuClick: (() -> Unit)? = null,
+    onAddClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: BudgetViewModel = viewModel(
         factory = BudgetViewModelFactory(
-            repository = BudgetRepository(AppDatabase.getDatabase(context).budgetDao())
+            budgetRepository = BudgetRepository(AppDatabase.getDatabase(context).budgetDao()),
+            transactionRepository = TransactionRepository(AppDatabase.getDatabase(context).transactionDao())
         )
     )
 
-    val budgets by viewModel.allBudgets.collectAsState(initial = emptyList())
+    val budgets by viewModel.allBudgets.collectAsState()
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -50,46 +56,55 @@ fun BudgetsScreen(
     // Check if any budget is over limit
     val hasOverBudget = budgets.any { it.currentSpent > it.monthlyLimit }
 
-    Column(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background),
+        topBar = {
+            com.example.spend_trend.ui.components.BlockTopBar(
+                title = "Budgets",
+                onBack = if (onMenuClick == null) onBack else null,
+                onMenuClick = onMenuClick,
+                actions = {
+                    IconButton(onClick = onAddClick) {
+                        Icon(Icons.Default.Add, "Add Budget", tint = MonoBlack)
+                    }
+                }
+            )
+        }
     ) {
-        com.example.spend_trend.ui.components.BlockTopBar(
-            title = "Budgets",
-            onBack = onBack
-        )
-
+ innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = Dimens.SpacingLg)
-                .padding(top = Dimens.SpacingLg)
+                .padding(innerPadding)
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
         ) {
+            Spacer(Modifier.height(Dimens.SpacingMd))
+
             if (hasOverBudget) {
                 val overBudgetCategories = budgets.filter { it.currentSpent > it.monthlyLimit }
-            overBudgetCategories.forEach { overBudget ->
-                BlockCard(modifier = Modifier.fillMaxWidth(), backgroundColor = ExpenseRose) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.PriorityHigh,
-                            contentDescription = null,
-                            tint = MonoWhite,
-                            modifier = Modifier.size(Dimens.IconMd)
-                        )
-                        Spacer(Modifier.width(Dimens.SpacingMd))
-                        Text(
-                            "EXCEEDED: ${overBudget.category.uppercase()} BUDGET",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Black,
-                            color = MonoWhite
-                        )
+                overBudgetCategories.forEach { overBudget ->
+                    BlockCard(modifier = Modifier.fillMaxWidth(), backgroundColor = ExpenseRose) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.PriorityHigh,
+                                contentDescription = null,
+                                tint = MonoWhite,
+                                modifier = Modifier.size(Dimens.IconMd)
+                            )
+                            Spacer(Modifier.width(Dimens.SpacingMd))
+                            Text(
+                                "EXCEEDED: ${overBudget.category.uppercase()} BUDGET",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = MonoWhite
+                            )
+                        }
                     }
                 }
-                Spacer(Modifier.height(Dimens.SpacingSm))
             }
-            Spacer(Modifier.height(Dimens.SpacingSm))
-        }
 
         if (budgets.isEmpty()) {
             Spacer(Modifier.weight(1f))
@@ -168,7 +183,8 @@ private fun BudgetBlockCard(budget: BudgetEntity) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .border(2.dp, MonoBlack)
+                    .background(MonoWhite, RoundedCornerShape(Dimens.RadiusSm))
+                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusSm))
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -187,13 +203,14 @@ private fun BudgetBlockCard(budget: BudgetEntity) {
                 color = MonoBlack
             )
 
-            // Stark Linear Progress instead of Circular for "Edgy" look
+            // Curvy Neo-Brutal Progress
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(12.dp)
-                    .border(1.5.dp, MonoBlack)
-                    .padding(2.dp)
+                    .height(14.dp)
+                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusFull))
+                    .background(MonoWhite, RoundedCornerShape(Dimens.RadiusFull))
+                    .clip(RoundedCornerShape(Dimens.RadiusFull))
             ) {
                 Box(
                     modifier = Modifier
