@@ -33,23 +33,24 @@ class SmsReceiver : BroadcastReceiver() {
         
         scope.launch {
             try {
-                for (sms in messages) {
-                    val body = sms.displayMessageBody
-                    val sender = sms.displayOriginatingAddress ?: "Unknown"
+                if (messages.isEmpty()) return@launch
+                
+                // Concatenate all parts (for long SMS)
+                val fullBody = messages.joinToString("") { it.displayMessageBody ?: "" }
+                val sender = messages[0].displayOriginatingAddress ?: "Unknown"
 
-                    Log.d("SmsReceiver", "Received SMS from $sender: $body")
-                    
-                    // 1. Check for transactions (Payments made)
-                    val txParsed = SmsParser.parse(body)
-                    if (txParsed != null) {
-                        saveTransaction(context, txParsed)
-                    }
+                Log.d("SmsReceiver", "Full SMS from $sender: $fullBody")
+                
+                // 1. Check for transactions (Payments made)
+                val txParsed = SmsParser.parse(fullBody)
+                if (txParsed != null) {
+                    saveTransaction(context, txParsed)
+                }
 
-                    // 2. Check for bill reminders (Upcoming payments)
-                    val billParsed = SmsParser.parseBill(body)
-                    if (billParsed != null) {
-                        saveBill(context, billParsed)
-                    }
+                // 2. Check for bill reminders (Upcoming payments)
+                val billParsed = SmsParser.parseBill(fullBody)
+                if (billParsed != null) {
+                    saveBill(context, billParsed)
                 }
             } finally {
                 pendingResult.finish()

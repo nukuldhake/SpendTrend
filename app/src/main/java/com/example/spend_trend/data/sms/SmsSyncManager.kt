@@ -37,6 +37,7 @@ class SmsSyncManager(private val context: Context) {
 
         var txCount = 0
         var billCount = 0
+        var totalScanned = 0
 
         cursor?.use {
             val bodyIdx = it.getColumnIndex("body")
@@ -44,6 +45,7 @@ class SmsSyncManager(private val context: Context) {
             val addrIdx = it.getColumnIndex("address")
 
             while (it.moveToNext()) {
+                totalScanned++
                 val body = it.getString(bodyIdx)
                 val dateMillis = it.getLong(dateIdx)
                 val sender = it.getString(addrIdx)
@@ -68,15 +70,15 @@ class SmsSyncManager(private val context: Context) {
                             category = parsedTx.category,
                             amount = signedAmount,
                             dateMillis = dateMillis,
-                            description = "Auto-tracked from $sender",
+                            description = "Synced from $sender",
                             bankName = parsedTx.bankName,
                             referenceNo = parsedTx.referenceNo
                         )
                         txDao.insert(entity)
                         txCount++
+                        Log.d("SmsSyncManager", "Synced Tx: ${parsedTx.merchant} - ${parsedTx.amount}")
                     }
                 }
-
 
                 // 2. Check for bills
                 val parsedBill = SmsParser.parseBill(body)
@@ -84,8 +86,6 @@ class SmsSyncManager(private val context: Context) {
                     val isDuplicate = if (parsedBill.referenceNo != null) {
                         billDao.getByReferenceNo(parsedBill.referenceNo) != null
                     } else {
-                        // Fuzzy check for bills: same amount and category within 15 days
-                        // Bill reminders are usually monthly, so a 15-day window prevents double tracking of the same month's bill
                         val window = 15 * 86400000L
                         billDao.findSimilarBill(parsedBill.amount, parsedBill.category, 
                             parsedBill.dueDateMillis - window, parsedBill.dueDateMillis + window) != null
@@ -102,12 +102,13 @@ class SmsSyncManager(private val context: Context) {
                         )
                         billDao.insertBill(entity)
                         billCount++
+                        Log.d("SmsSyncManager", "Synced Bill: ${parsedBill.title} - ${parsedBill.amount}")
                     }
                 }
             }
         }
 
-        Log.i("SmsSyncManager", "Sync complete. Added $txCount transactions and $billCount bills.")
+        Log.i("SmsSyncManager", "Sync complete. Scanned $totalScanned messages. Added $txCount transactions and $billCount bills.")
         return@withContext Pair(txCount, billCount)
     }
 }
