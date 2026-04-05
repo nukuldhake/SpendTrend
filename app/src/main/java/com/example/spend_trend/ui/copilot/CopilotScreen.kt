@@ -25,20 +25,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.repository.BillRepository
 import com.example.spend_trend.data.repository.BudgetRepository
+import com.example.spend_trend.data.repository.GoalRepository
 import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockTopBar
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun CopilotScreen() {
+fun CopilotScreen(onBack: () -> Unit = {}, onMenuClick: (() -> Unit)? = null) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: CopilotViewModel = viewModel(
         factory = CopilotViewModelFactory(
             txRepository = TransactionRepository(db.transactionDao()),
-            budgetRepository = BudgetRepository(db.budgetDao())
+            budgetRepository = BudgetRepository(db.budgetDao()),
+            billRepository = BillRepository(db.billDao()),
+            goalRepository = GoalRepository(db.goalDao())
         )
     )
 
@@ -47,7 +53,6 @@ fun CopilotScreen() {
     val isTyping = viewModel.isTyping
     val listState = rememberLazyListState()
 
-
     // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -55,98 +60,99 @@ fun CopilotScreen() {
         }
     }
 
-    Column(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // ── Messages ──
-        LazyColumn(
+            .background(MaterialTheme.colorScheme.background),
+        topBar = {
+            com.example.spend_trend.ui.components.BlockTopBar(
+                title = "Copilot",
+                onBack = if (onMenuClick == null) onBack else null,
+                onMenuClick = onMenuClick
+            )
+        }
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = Dimens.SpacingLg),
-            state = listState,
-            contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.SpacingLg),
-            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            // Welcome message if empty
-            if (messages.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.SpacingHuge),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        BlockCard(
-                            modifier = Modifier.size(64.dp),
-                            backgroundColor = Primary
+            // ── Messages ──
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = Dimens.SpacingLg),
+                state = listState,
+                contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.SpacingLg),
+                verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg)
+            ) {
+                // Welcome message if empty
+                if (messages.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.SpacingHuge),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(
-                                    "AI",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Black,
-                                    color = MonoWhite
-                                )
+                            BlockCard(
+                                modifier = Modifier.size(64.dp),
+                                backgroundColor = Primary
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        "AI",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Black,
+                                        color = MonoWhite
+                                    )
+                                }
                             }
+                            Spacer(Modifier.height(Dimens.SpacingLg))
+                            Text(
+                                "SpendTrend Copilot",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Your Financial Sidekick",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = MonoGrayMedium
+                            )
                         }
-                        Spacer(Modifier.height(Dimens.SpacingLg))
-                        Text(
-                            "SPENDTREND COPILOT",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "ASK ME ABOUT YOUR SPENDING, BUDGETS, OR FINANCIAL TIPS",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Black,
-                            color = MonoGrayMedium,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
                     }
+                }
+
+                items(messages) { msg ->
+                    ChatBubble(msg)
+                }
+
+                if (isTyping) {
+                    item { PulsingTypingIndicator() }
                 }
             }
 
-            items(messages) { msg ->
-                ChatBubble(msg)
-            }
-
-            if (isTyping) {
-                item { PulsingTypingIndicator() }
-            }
-        }
-
-        // ── Input Bar ──
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .navigationBarsPadding()
-        ) {
-            Box(Modifier.fillMaxWidth().height(Dimens.DividerThickness).background(MaterialTheme.colorScheme.outline))
+            // ── Input Area ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(Dimens.SpacingMd),
+                    .padding(Dimens.SpacingLg)
+                    .padding(bottom = Dimens.SpacingMd),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    placeholder = {
-                        Text(
-                            "ASK ABOUT YOUR MONEY...",
-                            color = MonoGrayMedium,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Black
-                        )
+                    placeholder = { 
+                        Text("Ask anything...", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black) 
                     },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    modifier = Modifier.weight(1f).neoShadow(),
+                    shape = RoundedCornerShape(Dimens.RadiusLg),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
+                        focusedContainerColor = MonoWhite,
+                        unfocusedContainerColor = MonoWhite,
+                        focusedBorderColor = MonoBlack,
                         unfocusedBorderColor = MonoGrayLight,
                         cursorColor = MonoBlack
                     )
@@ -157,8 +163,9 @@ fun CopilotScreen() {
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(if (inputText.isNotBlank()) Primary else MonoGrayLight)
-                        .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                        .background(if (inputText.isNotBlank()) Primary else MonoGrayLight, RoundedCornerShape(Dimens.RadiusLg))
+                        .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline, RoundedCornerShape(Dimens.RadiusLg))
+                        .clip(RoundedCornerShape(Dimens.RadiusLg))
                         .clickable(enabled = inputText.isNotBlank()) {
                             if (inputText.isNotBlank()) {
                                 viewModel.sendMessage(inputText.trim())
@@ -193,7 +200,7 @@ private fun ChatBubble(message: ChatMessage) {
         ) {
             Column {
                 Text(
-                    message.text.uppercase(),
+                    message.text,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Black,
                     color = if (isUser) MaterialTheme.colorScheme.onSurface else MonoWhite,
@@ -240,7 +247,7 @@ private fun PulsingTypingIndicator() {
         }
         Spacer(Modifier.width(Dimens.SpacingSm))
         Text(
-            "COPILOT IS THINKING…",
+            "Copilot is thinking…",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
             color = MonoGrayMedium

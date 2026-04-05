@@ -118,7 +118,10 @@ private fun RationaleItem(icon: ImageVector, title: String, description: String)
     BlockCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.size(Dimens.MinTouchTarget).border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline),
+                modifier = Modifier
+                    .size(Dimens.MinTouchTarget)
+                    .clip(RoundedCornerShape(Dimens.RadiusMd))
+                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusMd)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
