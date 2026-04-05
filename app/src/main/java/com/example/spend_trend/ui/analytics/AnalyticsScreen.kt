@@ -4,8 +4,11 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,11 +33,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.example.spend_trend.ui.components.BlockTopBar
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.theme.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-fun AnalyticsScreen(onBack: () -> Unit) {
+fun AnalyticsScreen(onBack: () -> Unit = {}, onMenuClick: (() -> Unit)? = null) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: AnalyticsViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -44,18 +48,25 @@ fun AnalyticsScreen(onBack: () -> Unit) {
             }
         }
     )
-
+    
     val categorySpent by viewModel.categoryDistribution.collectAsState()
     val yoyData by viewModel.yoyComparison.collectAsState()
+    val dailyTrend by viewModel.dailyTrend.collectAsState()
+    val cashFlow by viewModel.cashFlow.collectAsState()
+    val topMerchants by viewModel.topMerchants.collectAsState()
+    val selectedRange by viewModel.selectedTimeRange.collectAsState()
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         topBar = {
             BlockTopBar(
-                title = "ANALYTICS",
-                onBack = onBack
+                title = "Analytics",
+                onBack = if (onMenuClick == null) onBack else null,
+                onMenuClick = onMenuClick
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -63,9 +74,19 @@ fun AnalyticsScreen(onBack: () -> Unit) {
                 .padding(innerPadding)
                 .padding(horizontal = Dimens.SpacingLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
-            contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
+            contentPadding = PaddingValues(bottom = Dimens.BottomNavClearance)
         ) {
-            // ── Innovative Stats Row ──
+            item { Spacer(Modifier.height(Dimens.SpacingSm)) }
+
+            // ── Time Slicer ──
+            item {
+                TimeRangeSlicer(
+                    selectedRange = selectedRange,
+                    onRangeSelected = viewModel::setTimeRange
+                )
+            }
+
+            // ── Key Stats Row ──
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -87,22 +108,45 @@ fun AnalyticsScreen(onBack: () -> Unit) {
                 }
             }
 
-            // Category Distribution
+            // ── Cash Flow Bar Chart ──
             item {
-                AnalyticsCard(title = "DISTRIBUTION", subtitle = "MONTHLY SPEND") {
-                    if (categorySpent.isEmpty()) {
-                        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            Text("NO DATA COLLECTED", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
-                        }
+                AnalyticsCard(title = "CASH FLOW", subtitle = "INCOME VS EXPENSE") {
+                    NoirCashFlowChart(
+                        income = cashFlow.income,
+                        expense = cashFlow.expense,
+                        modifier = Modifier.fillMaxWidth().height(140.dp).padding(vertical = Dimens.SpacingMd)
+                    )
+                }
+            }
+
+            // ── Daily Spend Trend ──
+            item {
+                AnalyticsCard(title = "SPEND TREND", subtitle = "DAILY VELOCITY") {
+                    if (dailyTrend.isEmpty()) {
+                        EmptyDataPlaceHolder()
                     } else {
-                        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.SpacingMd)) {
+                        NoirTrendChart(
+                            data = dailyTrend,
+                            modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = Dimens.SpacingMd)
+                        )
+                    }
+                }
+            }
+
+            // ── Category Distribution ──
+            item {
+                AnalyticsCard(title = "DISTRIBUTION", subtitle = "BY CATEGORY") {
+                    if (categorySpent.isEmpty()) {
+                        EmptyDataPlaceHolder()
+                    } else {
+                        Column(modifier = Modifier.fillMaxWidth().padding(bottom = Dimens.SpacingMd)) {
                             PieChart(
                                 data = categorySpent,
                                 modifier = Modifier.size(180.dp).align(Alignment.CenterHorizontally)
                             )
                             Spacer(Modifier.height(Dimens.SpacingLg))
                             val total = categorySpent.sumOf { it.amount }.toFloat().coerceAtLeast(1f)
-                            categorySpent.take(4).forEach { spend ->
+                            categorySpent.take(3).forEach { spend ->
                                 val pct = (spend.amount.toFloat() / total * 100).toInt()
                                 LegendItem(spend.color, spend.category.uppercase(), "₹${spend.amount.toInt()}", "$pct%")
                             }
@@ -111,12 +155,27 @@ fun AnalyticsScreen(onBack: () -> Unit) {
                 }
             }
 
-            // Year over Year Comparison
+            // ── Top Merchants ──
             item {
-                AnalyticsCard(title = "COMPARISON", subtitle = "YEAR OVER YEAR TREND") {
+                AnalyticsCard(title = "TOP SPEND TO", subtitle = "MOST FREQUENT MERCHANTS") {
+                    if (topMerchants.isEmpty()) {
+                        EmptyDataPlaceHolder()
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)) {
+                            topMerchants.forEach { m ->
+                                MerchantItem(m.merchant.uppercase(), "₹${m.amount.toInt()}")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Year over Year (Legacy View) ──
+            item {
+                AnalyticsCard(title = "HISTORY", subtitle = "YEAR OVER YEAR TREND") {
                     NoirYoYChart(
                         data = yoyData,
-                        modifier = Modifier.fillMaxWidth().height(220.dp).padding(top = Dimens.SpacingMd)
+                        modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = Dimens.SpacingMd)
                     )
                 }
             }
@@ -125,12 +184,136 @@ fun AnalyticsScreen(onBack: () -> Unit) {
 }
 
 @Composable
+private fun TimeRangeSlicer(
+    selectedRange: AnalyticsTimeRange,
+    onRangeSelected: (AnalyticsTimeRange) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+        contentPadding = PaddingValues(bottom = Dimens.SpacingSm)
+    ) {
+        items(AnalyticsTimeRange.values()) { range ->
+            val isSelected = range == selectedRange
+            Box(
+                modifier = Modifier
+                    .border(
+                        width = Dimens.BorderWidthStandard,
+                        color = MonoBlack,
+                        shape = RoundedCornerShape(0.dp)
+                    )
+                    .background(if (isSelected) MonoBlack else MonoWhite)
+                    .clickable { onRangeSelected(range) }
+                    .padding(horizontal = Dimens.SpacingMd, vertical = Dimens.SpacingSm)
+            ) {
+                Text(
+                    text = range.label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Black,
+                    color = if (isSelected) MonoWhite else MonoBlack
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoirCashFlowChart(income: Double, expense: Double, modifier: Modifier = Modifier) {
+    val max = (income.coerceAtLeast(expense)).toFloat().coerceAtLeast(1f)
+    val incomePercent = (income / max).toFloat()
+    val expensePercent = (expense / max).toFloat()
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm)) {
+        // Income Bar
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("IN", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, modifier = Modifier.width(30.dp))
+            Box(Modifier.weight(1f)) {
+                Box(Modifier.fillMaxWidth().height(24.dp).border(Dimens.BorderWidthThin, MonoBlack))
+                Box(Modifier.fillMaxWidth(incomePercent).height(24.dp).background(CategoryColors.Green).border(Dimens.BorderWidthThin, MonoBlack))
+            }
+            Text("₹${income.toInt()}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, modifier = Modifier.width(60.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        }
+        // Expense Bar
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("OUT", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, modifier = Modifier.width(30.dp))
+            Box(Modifier.weight(1f)) {
+                Box(Modifier.fillMaxWidth().height(24.dp).border(Dimens.BorderWidthThin, MonoBlack))
+                Box(Modifier.fillMaxWidth(expensePercent).height(24.dp).background(CategoryColors.Orange).border(Dimens.BorderWidthThin, MonoBlack))
+            }
+            Text("₹${expense.toInt()}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, modifier = Modifier.width(60.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        }
+    }
+}
+
+@Composable
+private fun NoirTrendChart(data: List<DailyTrend>, modifier: Modifier = Modifier) {
+    val max = data.maxOfOrNull { it.amount }?.toFloat()?.coerceAtLeast(1f) ?: 1f
+    
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stepX = w / (data.size - 1).coerceAtLeast(1)
+
+        val points = data.mapIndexed { i, d ->
+            androidx.compose.ui.geometry.Offset(
+                x = i * stepX,
+                y = h - (d.amount.toFloat() / max * h)
+            )
+        }
+
+        val path = Path().apply {
+            if (points.isNotEmpty()) {
+                moveTo(points[0].x, points[0].y)
+                for (i in 1 until points.size) {
+                    lineTo(points[i].x, points[i].y)
+                }
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = MonoBlack,
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Square)
+        )
+
+        // Draw points as squares
+        points.forEach { pt ->
+            drawRect(
+                color = MonoBlack,
+                topLeft = androidx.compose.ui.geometry.Offset(pt.x - 3.dp.toPx(), pt.y - 3.dp.toPx()),
+                size = androidx.compose.ui.geometry.Size(6.dp.toPx(), 6.dp.toPx())
+            )
+        }
+    }
+}
+
+@Composable
+private fun MerchantItem(name: String, amount: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(Dimens.BorderWidthThin, MonoBlack)
+            .padding(Dimens.SpacingSm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(amount, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
+private fun EmptyDataPlaceHolder() {
+    Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+        Text("NO DATA COLLECTED", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
 private fun InsightStat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     BlockCard(
         modifier = modifier,
         backgroundColor = color.copy(alpha = 0.1f),
-        borderColor = MonoBlack,
-        hasShadow = false
+        borderColor = MonoBlack
     ) {
         Column {
             Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MonoBlack.copy(alpha = 0.6f))
@@ -166,7 +349,6 @@ private fun PieChart(data: List<CategorySpend>, modifier: Modifier = Modifier) {
         data.forEach { spend ->
             val sweepAngle = (spend.amount.toFloat() / total) * 360f
             
-            // Segment
             drawArc(
                 color = spend.color,
                 startAngle = startAngle,
@@ -174,9 +356,8 @@ private fun PieChart(data: List<CategorySpend>, modifier: Modifier = Modifier) {
                 useCenter = true
             )
             
-            // Sharp Border between segments
             drawArc(
-                color = Color(0xFF0F172A),  // Slate-900 borders
+                color = Color(0xFF0F172A),
                 startAngle = startAngle,
                 sweepAngle = sweepAngle,
                 useCenter = true,
@@ -203,7 +384,6 @@ private fun PieChart(data: List<CategorySpend>, modifier: Modifier = Modifier) {
             startAngle += sweepAngle
         }
 
-        // Center hole (Slate-900)
         drawCircle(
             color = Color(0xFF0F172A),
             radius = size.minDimension / 5f
@@ -270,7 +450,6 @@ private fun NoirYoYChart(data: List<MonthlyComparison>, modifier: Modifier = Mod
         val currentPoints = getPoints { it.currentYear }
         val previousPoints = getPoints { it.previousYear }
 
-        // Draw Previous Year (Dashed / Muted Noir)
         if (previousPoints.isNotEmpty()) {
             val prevPath = Path().apply {
                 moveTo(previousPoints[0].x, previousPoints[0].y)
@@ -285,7 +464,6 @@ private fun NoirYoYChart(data: List<MonthlyComparison>, modifier: Modifier = Mod
             )
         }
 
-        // Draw Current Year (Accent Blue)
         if (currentPoints.isNotEmpty()) {
             val currPath = Path().apply {
                 moveTo(currentPoints[0].x, currentPoints[0].y)
@@ -299,7 +477,6 @@ private fun NoirYoYChart(data: List<MonthlyComparison>, modifier: Modifier = Mod
                 style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Square)
             )
             
-            // Sharp Data Points (Blue accent)
             currentPoints.forEach { pt ->
                 drawRect(
                     color = Color(0xFF3B82F6),
@@ -309,7 +486,6 @@ private fun NoirYoYChart(data: List<MonthlyComparison>, modifier: Modifier = Mod
             }
         }
 
-        // X-Axis labels
         data.forEachIndexed { i, d ->
             if (i % 2 == 0) {
                 val x = i * stepX
