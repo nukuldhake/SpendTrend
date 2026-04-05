@@ -51,12 +51,9 @@ fun ProfileScreen(
     ) {
         BlockTopBar(
             title = "PROFILE",
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
-                }
-            }
+            onBack = onBack
         )
+        Spacer(Modifier.height(Dimens.SpacingMd))
         
         Spacer(Modifier.height(Dimens.SpacingHuge))
         
@@ -89,7 +86,7 @@ fun ProfileScreen(
                 OutlinedTextField(
                     value = userName,
                     onValueChange = { userName = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).neoShadow(androidx.compose.ui.graphics.RectangleShape),
                     singleLine = true,
                     shape = androidx.compose.ui.graphics.RectangleShape,
                     colors = OutlinedTextFieldDefaults.colors(

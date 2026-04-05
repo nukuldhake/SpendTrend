@@ -15,7 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,15 +25,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
 import com.example.spend_trend.data.GoalEntity
 import com.example.spend_trend.data.repository.GoalRepository
-import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalScreen(onBack: () -> Unit = {}) {
+fun GoalScreen(onBack: () -> Unit = {}, onMenuClick: (() -> Unit)? = null) {
     val db = AppDatabase.getDatabase(LocalContext.current)
     val viewModel: GoalViewModel = viewModel(
         factory = GoalViewModelFactory(GoalRepository(db.goalDao()))
@@ -41,24 +43,38 @@ fun GoalScreen(onBack: () -> Unit = {}) {
     val allGoals by viewModel.allGoals.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    Box(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background) // Curvy Playful bg
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+            .background(MaterialTheme.colorScheme.background),
+        topBar = {
             com.example.spend_trend.ui.components.BlockTopBar(
                 title = "Goals",
-                onBack = onBack
+                onBack = if (onMenuClick == null) onBack else null,
+                onMenuClick = onMenuClick
             )
-
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = Primary,
+                contentColor = MonoBlack,
+                shape = RoundedCornerShape(Dimens.RadiusLg),
+                modifier = Modifier.border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusLg))
+            ) {
+                Icon(Icons.Default.Add, "Add Goal")
+            }
+        }
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = Dimens.SpacingLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
-            contentPadding = PaddingValues(top = Dimens.SpacingSm, bottom = 120.dp)
+            contentPadding = PaddingValues(bottom = 100.dp)
         ) {
+            item { Spacer(Modifier.height(Dimens.SpacingMd)) }
 
             if (allGoals.isEmpty()) {
                 item {
@@ -83,22 +99,6 @@ fun GoalScreen(onBack: () -> Unit = {}) {
                     }
                 }
             }
-        }
-        } // Close Column
-
-        // Playful Floating Action Button
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimens.SpacingLg)
-                .padding(bottom = Dimens.BottomNavClearance)
-        ) {
-            BlockButton(
-                text = "+ NEW GOAL",
-                onClick = { showAddDialog = true },
-                modifier = Modifier.height(56.dp).width(160.dp),
-                isPrimary = true
-            )
         }
     }
 
@@ -192,13 +192,14 @@ private fun GoalBlockCard(goal: GoalEntity, onIncrement: () -> Unit) {
 
             Spacer(Modifier.height(Dimens.SpacingSm))
 
-            // Stark Linear Progress
+            // Curvy Progress
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(14.dp)
-                    .border(2.dp, MonoBlack)
-                    .padding(2.dp)
+                    .height(16.dp)
+                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusFull))
+                    .background(MonoWhite, RoundedCornerShape(Dimens.RadiusFull))
+                    .clip(RoundedCornerShape(Dimens.RadiusFull))
             ) {
                 Box(
                     modifier = Modifier
@@ -287,8 +288,8 @@ private fun AddGoalDialog(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("WHAT ARE YOU SAVING FOR?") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RectangleShape,
+                        modifier = Modifier.fillMaxWidth().neoShadow(),
+                        shape = RoundedCornerShape(Dimens.RadiusLg),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
                             unfocusedBorderColor = MonoGrayLight,
@@ -299,8 +300,8 @@ private fun AddGoalDialog(
                         value = target,
                         onValueChange = { target = it.filter { c -> c.isDigit() } },
                         label = { Text("TARGET AMOUNT (₹)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RectangleShape,
+                        modifier = Modifier.fillMaxWidth().neoShadow(),
+                        shape = RoundedCornerShape(Dimens.RadiusLg),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
@@ -312,8 +313,8 @@ private fun AddGoalDialog(
                         value = category,
                         onValueChange = { category = it },
                         label = { Text("CATEGORY") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RectangleShape,
+                        modifier = Modifier.fillMaxWidth().neoShadow(),
+                        shape = RoundedCornerShape(Dimens.RadiusLg),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
                             unfocusedBorderColor = MonoGrayLight,
@@ -363,8 +364,8 @@ private fun ContributeDialog(
                         value = amount,
                         onValueChange = { amount = it.filter { c -> c.isDigit() || c == '.' } },
                         label = { Text("CONTRIBUTION AMOUNT (₹)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RectangleShape,
+                        modifier = Modifier.fillMaxWidth().neoShadow(),
+                        shape = RoundedCornerShape(Dimens.RadiusLg),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,

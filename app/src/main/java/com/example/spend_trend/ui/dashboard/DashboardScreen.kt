@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -29,8 +30,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spend_trend.data.AppDatabase
+import com.example.spend_trend.data.GoalEntity
 import com.example.spend_trend.data.repository.BudgetRepository
 import com.example.spend_trend.data.repository.TransactionRepository
 import com.example.spend_trend.ui.components.BlockCard
@@ -43,6 +49,8 @@ fun DashboardScreen(
     onNavigateToBills: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
+    onNavigateToForecast: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     onOpenDrawer: () -> Unit = {}
 ) {
     val db = AppDatabase.getDatabase(LocalContext.current)
@@ -59,7 +67,6 @@ fun DashboardScreen(
     val summary by viewModel.currentMonthSummary.collectAsState(initial = MonthSummary(0, 0, 0))
     val monthlyTrend by viewModel.monthlyTrend.collectAsState(initial = emptyList())
     val pendingBills by viewModel.pendingBills.collectAsState(initial = emptyList())
-    val goalsProgress by viewModel.goalsProgress.collectAsState(initial = 0f)
     val totalBalance by viewModel.totalBalance.collectAsState()
     
     val balance = totalBalance
@@ -79,54 +86,81 @@ fun DashboardScreen(
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
+    var selectedWeekIndex by remember { mutableStateOf<Int?>(null) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = Dimens.SpacingLg),
-        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
-        contentPadding = PaddingValues(top = Dimens.SpacingLg, bottom = Dimens.BottomNavClearance)
-    ) {
-        // ── Top Bar Header (Profile & Greeting) ──
-        item {
-            AnimatedVisibility(visible = visible, enter = fadeIn(tween(500))) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = Dimens.SpacingMd),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onOpenDrawer) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Spacer(Modifier.width(Dimens.SpacingSm))
-                        Column {
-                            val userName = com.example.spend_trend.data.UserPreferences.getName() ?: "User"
-                            Text("Hi $userName,", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-                            Text("Welcome back", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
-                        }
-                    }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            com.example.spend_trend.ui.components.BlockTopBar(
+                title = "SPENDTREND",
+                onMenuClick = onOpenDrawer,
+                actions = {
                     Box(
                         modifier = Modifier
-                            .size(Dimens.AvatarMd)
+                            .size(Dimens.AvatarSm)
                             .background(Primary, androidx.compose.foundation.shape.CircleShape)
-                            .border(Dimens.BorderWidthStandard, MonoBlack, androidx.compose.foundation.shape.CircleShape),
+                            .border(Dimens.BorderWidthStandard, MonoBlack, androidx.compose.foundation.shape.CircleShape)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .clickable { onNavigateToProfile() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = MonoBlack)
+                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = MonoBlack, modifier = Modifier.size(16.dp))
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = Dimens.SpacingLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingLg),
+            contentPadding = PaddingValues(top = Dimens.SpacingMd, bottom = Dimens.BottomNavClearance)
+        ) {
+            // ── Greeting Item ──
+            item {
+                AnimatedVisibility(visible = visible, enter = fadeIn(tween(500))) {
+                    Column {
+                        val userName = com.example.spend_trend.data.UserPreferences.getName() ?: "User"
+                        Text("HI $userName,", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        Text("WELCOME BACK", style = MaterialTheme.typography.labelSmall, color = MonoGrayMedium)
                     }
                 }
             }
-        }
 
-        // ── Curvy Hero Balance Card ──
-        item {
-            AnimatedVisibility(visible = visible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { -60 }) {
-                HeroBalanceCard(
-                    balance = balance,
-                    trendPct = trendData.first,
-                    trendVal = trendData.second
-                )
+            // ── Curvy Hero Balance & Quick Add Row ──
+            item {
+                AnimatedVisibility(visible = visible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { -60 }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
+                    ) {
+                        Box(modifier = Modifier.weight(0.72f).fillMaxHeight()) {
+                            HeroBalanceCard(
+                                balance = balance,
+                                trendPct = trendData.first,
+                                trendVal = trendData.second
+                            )
+                        }
+                        
+                        BlockCard(
+                            modifier = Modifier.weight(0.28f).fillMaxHeight().clickable(onClick = onNavigateToAddTx),
+                            backgroundColor = Primary,
+                            borderColor = MonoBlack,
+                            hasShadow = true
+                        ) {
+                        Column(
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(Icons.Default.Add, "Add Transaction", tint = MonoBlack, modifier = Modifier.size(Dimens.IconLg))
+                            Spacer(Modifier.height(Dimens.SpacingXs))
+                            Text("ADD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                        }
+                    }
+                }
             }
         }
 
@@ -137,7 +171,9 @@ fun DashboardScreen(
             }
             if (billsToNotify.isNotEmpty()) {
                 item {
-                    UpcomingBillAlert(billsToNotify.size, billsToNotify.sumOf { it.amount })
+                    Box(modifier = Modifier.clickable(onClick = onNavigateToBills)) {
+                        UpcomingBillAlert(billsToNotify.size, billsToNotify.sumOf { it.amount })
+                    }
                 }
             }
         }
@@ -149,9 +185,9 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
                 ) {
-                    ActionSquircle(label = "Add Tx", icon = Icons.Default.Add, backgroundColor = CategoryColors.Green, onClick = onNavigateToAddTx, modifier = Modifier.weight(1f))
-                    ActionSquircle(label = "Bills", icon = Icons.Default.Receipt, backgroundColor = CategoryColors.Yellow, onClick = onNavigateToBills, modifier = Modifier.weight(1f))
-                    ActionSquircle(label = "Goals", icon = Icons.Default.Star, backgroundColor = CategoryColors.Purple, onClick = onNavigateToGoals, modifier = Modifier.weight(1f))
+                    ActionSquircle(label = "Forecast", icon = Icons.AutoMirrored.Filled.TrendingUp, backgroundColor = CategoryColors.Green, onClick = onNavigateToForecast, modifier = Modifier.weight(1f))
+                    ActionSquircle(label = "Bills", icon = Icons.AutoMirrored.Filled.ReceiptLong, backgroundColor = CategoryColors.Yellow, onClick = onNavigateToBills, modifier = Modifier.weight(1f))
+                    ActionSquircle(label = "Goals", icon = Icons.Default.Stars, backgroundColor = CategoryColors.Purple, onClick = onNavigateToGoals, modifier = Modifier.weight(1f))
                     ActionSquircle(label = "Analytics", icon = Icons.Default.PieChart, backgroundColor = CategoryColors.Orange, onClick = onNavigateToAnalytics, modifier = Modifier.weight(1f))
                 }
             }
@@ -161,39 +197,95 @@ fun DashboardScreen(
         item {
             AnimatedVisibility(visible = visible, enter = fadeIn(tween(500, delayMillis = 200))) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max), // Important to match heights
+                    modifier = Modifier.fillMaxWidth().height(200.dp), // Unified professional height
                     horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMd)
                 ) {
-                    BlockCard(modifier = Modifier.weight(1f).fillMaxHeight(), hasShadow = false) {
+                    BlockCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight() // Removed redirecting clickable
+                    ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Activity", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
-                        Spacer(Modifier.weight(1f))
-                        NoirSparkLine(data = monthlyTrend, modifier = Modifier.height(60.dp).fillMaxWidth().padding(vertical = Dimens.SpacingSm))
-                        Spacer(Modifier.weight(1f))
-                        Text("₹${expense.formatWithComma()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-                        Text("↗ +1.7%", style = MaterialTheme.typography.labelSmall, color = MonoBlack.copy(alpha = 0.6f))
-                    }
-
-                    BlockCard(modifier = Modifier.weight(1f).fillMaxHeight(), hasShadow = false) {
-                        Text("Goals\nAchieved", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black)
-                        Spacer(Modifier.weight(1f))
-                        Text("${(goalsProgress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.height(Dimens.SpacingSm))
+                        NoirBarChart(
+                            data = monthlyTrend,
+                            selectedIndex = selectedWeekIndex,
+                            onPointClick = { selectedWeekIndex = it },
+                            modifier = Modifier.height(100.dp).fillMaxWidth().padding(vertical = Dimens.SpacingXs)
+                        )
                         Spacer(Modifier.height(Dimens.SpacingXs))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .background(MonoGrayLight, androidx.compose.foundation.shape.CircleShape)
+                        // --- Week Labels ---
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(goalsProgress)
-                                    .fillMaxHeight()
-                                    .background(MonoBlack, androidx.compose.foundation.shape.CircleShape)
+                            monthlyTrend.forEachIndexed { i, _ ->
+                                Text(
+                                    "W${i + 1}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (selectedWeekIndex == i) Primary else MonoGrayMedium,
+                                    fontWeight = if (selectedWeekIndex == i) FontWeight.Black else FontWeight.Bold
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(Dimens.SpacingMd))
+                        if (selectedWeekIndex != null && selectedWeekIndex!! < monthlyTrend.size) {
+                            Text("Week ${selectedWeekIndex!! + 1}: ₹${monthlyTrend[selectedWeekIndex!!].formatWithComma()}", 
+                                style = MaterialTheme.typography.labelMedium, 
+                                fontWeight = FontWeight.Black, 
+                                color = Primary
                             )
+                        } else {
+                            Text("₹${expense.formatWithComma()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                            Text("↗ +1.7% (THIS MONTH)", style = MaterialTheme.typography.labelSmall, color = MonoBlack.copy(alpha = 0.6f))
+                        }
+                    }
+ 
+                    val goals by viewModel.activeGoals.collectAsState()
+                    BlockCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    ) {
+                        Text("Goals", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(Dimens.SpacingSm))
+                        
+                        if (goals.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("No active goals", style = MaterialTheme.typography.bodySmall, color = MonoGrayMedium)
+                            }
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(Dimens.SpacingSm),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(goals) { goal ->
+                                    val progress = if (goal.targetAmount > 0) (goal.currentAmount / goal.targetAmount).toFloat().coerceIn(0f, 1f) else 0f
+                                    Column {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(goal.title, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                            Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(4.dp)
+                                                .background(MonoGrayLight, androidx.compose.foundation.shape.CircleShape)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(progress)
+                                                    .fillMaxHeight()
+                                                    .background(MonoBlack, androidx.compose.foundation.shape.CircleShape)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -227,6 +319,7 @@ fun DashboardScreen(
                 BlockTransactionRow(tx)
             }
         }
+    }
     }
 }
 
@@ -302,8 +395,7 @@ private fun ActionSquircle(
         BlockCard(
             modifier = Modifier.aspectRatio(1f),
             backgroundColor = backgroundColor,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg),
-            hasShadow = false
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.RadiusLg)
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 // Circle inside squircle
@@ -347,48 +439,66 @@ private fun StatCard(
 }
 
 // ════════════════════════════════════════════════
-//  Noir Spark Line (Sharp Corners)
+//  Noir Bar Chart (Sharp & Interactive)
 // ════════════════════════════════════════════════
 @Composable
-private fun NoirSparkLine(data: List<Int>, modifier: Modifier = Modifier) {
+private fun NoirBarChart(
+    data: List<Int>, 
+    selectedIndex: Int? = null,
+    onPointClick: (Int) -> Unit = {}, 
+    modifier: Modifier = Modifier
+) {
     if (data.isEmpty()) return
 
     val max = data.maxOrNull() ?: 0
-    val min = data.minOrNull() ?: 0
-    val range = (max - min).coerceAtLeast(1)
+    val range = max.coerceAtLeast(1)
 
-    Canvas(modifier = modifier) {
+    Canvas(modifier = modifier
+        .pointerInput(data) {
+            detectTapGestures { offset ->
+                val w = size.width.toFloat()
+                val barWidthWithGap = w / data.size
+                val index = (offset.x / barWidthWithGap).toInt().coerceIn(0, data.size - 1)
+                onPointClick(index)
+            }
+        }
+    ) {
         val w = size.width
         val h = size.height
-        val stepX = w / (data.size - 1).coerceAtLeast(1)
+        val barWidthWithGap = w / data.size.toFloat()
+        val barWidth = barWidthWithGap * 0.75f
+        val gap = barWidthWithGap * 0.25f
 
-        val points = data.mapIndexed { i, v ->
-            val norm = (v - min) / range.toFloat()
-            androidx.compose.ui.geometry.Offset(
-                x = i * stepX,
-                y = h - (norm * h)
+        // Draw horizontal grid lines (3 levels)
+        repeat(3) { i ->
+            val y = (h / 3) * (i + 1)
+            drawLine(
+                color = MonoGrayLight.copy(alpha = 0.4f),
+                start = androidx.compose.ui.geometry.Offset(0f, h - y),
+                end = androidx.compose.ui.geometry.Offset(w, h - y),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
             )
         }
 
-        val path = Path().apply {
-            moveTo(points[0].x, points[0].y)
-            for (i in 1 until points.size) {
-                lineTo(points[i].x, points[i].y)
-            }
-        }
+        data.forEachIndexed { i, v ->
+            val barHeight = (v.toFloat() / range) * h
+            val x = i * barWidthWithGap + (gap / 2)
+            val y = h - barHeight
 
-        drawPath(
-            path = path,
-            color = Primary,
-            style = Stroke(width = Dimens.ChartStrokeWidth.value.dp.toPx(), cap = StrokeCap.Square)
-        )
-
-        // Draw data points as squares (accent)
-        points.forEach { pt ->
+            // Draw Bar
             drawRect(
-                color = Primary,
-                topLeft = androidx.compose.ui.geometry.Offset(pt.x - 5.dp.toPx(), pt.y - 5.dp.toPx()),
-                size = androidx.compose.ui.geometry.Size(10.dp.toPx(), 10.dp.toPx())
+                color = if (selectedIndex == i) Primary else Primary.copy(alpha = 0.3f),
+                topLeft = androidx.compose.ui.geometry.Offset(x, y),
+                size = androidx.compose.ui.geometry.Size(barWidth, barHeight)
+            )
+
+            // Draw Border for Noir look
+            drawRect(
+                color = MonoBlack,
+                topLeft = androidx.compose.ui.geometry.Offset(x, y),
+                size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                style = Stroke(width = 1.5.dp.toPx())
             )
         }
     }

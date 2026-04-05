@@ -82,8 +82,8 @@ class DashboardViewModel(
                     .toEpochMilli()
 
                 entities
-                    .filter { it.dateMillis in start..end }
-                    .sumOf { it.amount }
+                    .filter { it.dateMillis in start..end && it.amount < 0 }
+                    .sumOf { -it.amount }
             }.reversed() // make oldest first for chart left-to-right
         }
         .stateIn(
@@ -144,6 +144,10 @@ class DashboardViewModel(
             if (totalTarget > 0) (totalSaved / totalTarget).toFloat().coerceIn(0f, 1f) else 0f
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    val activeGoals: StateFlow<List<com.example.spend_trend.data.GoalEntity>> = goalRepository.allGoals
+        .map { it.filter { g -> g.isActive } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Data-driven motivational tip
     val motivationalTip: StateFlow<String> = combine(
