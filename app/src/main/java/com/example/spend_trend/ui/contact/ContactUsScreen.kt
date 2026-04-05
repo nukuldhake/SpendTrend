@@ -17,7 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.components.BlockCard
 import com.example.spend_trend.ui.components.BlockButton
+import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.components.BlockTopBar
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 
 @Composable
@@ -62,7 +64,7 @@ fun ContactUsScreen(onBack: () -> Unit = {}) {
                 OutlinedTextField(
                     value = email, 
                     onValueChange = { email = it },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().neoShadow(androidx.compose.ui.graphics.RectangleShape),
                     shape = androidx.compose.ui.graphics.RectangleShape,
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -80,7 +82,7 @@ fun ContactUsScreen(onBack: () -> Unit = {}) {
                     value = message, 
                     onValueChange = { message = it },
                     minLines = 5,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().neoShadow(androidx.compose.ui.graphics.RectangleShape),
                     shape = androidx.compose.ui.graphics.RectangleShape,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
