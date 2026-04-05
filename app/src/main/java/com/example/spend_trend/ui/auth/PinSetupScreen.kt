@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -88,9 +89,10 @@ fun PinSetupScreen(
                     val isActive = currentPin.length > index
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
-                            .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
-                            .background(if (isActive) Primary else MaterialTheme.colorScheme.surface)
+                            .size(20.dp)
+                            .clip(RoundedCornerShape(Dimens.RadiusMd))
+                            .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusMd))
+                            .background(if (isActive) Primary else MonoWhite)
                     )
                 }
             }
@@ -110,7 +112,8 @@ fun PinSetupScreen(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
+                                    .clip(RoundedCornerShape(Dimens.RadiusMd))
+                                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusMd))
                                     .clickable {
                                         when (key) {
                                             "⌫" -> {
@@ -141,7 +144,7 @@ fun PinSetupScreen(
                                             }
                                         }
                                     }
-                                    .background(if (key == "OK") Primary else MaterialTheme.colorScheme.surface),
+                                    .background(if (key == "OK") Primary else MonoWhite),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.spend_trend.ui.components.BlockButton
 import com.example.spend_trend.ui.components.BlockCard
+import com.example.spend_trend.ui.components.neoShadow
 import com.example.spend_trend.ui.theme.*
 
 @Composable
@@ -102,8 +103,8 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = viewModel.email,
                             onValueChange = { viewModel.email = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = androidx.compose.ui.graphics.RectangleShape,
+                            modifier = Modifier.fillMaxWidth().neoShadow(),
+                            shape = RoundedCornerShape(Dimens.RadiusLg),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -205,8 +206,8 @@ fun PasswordLoginContent(
             OutlinedTextField(
                 value = viewModel.password,
                 onValueChange = { viewModel.password = it },
-                modifier = Modifier.fillMaxWidth(),
-                shape = androidx.compose.ui.graphics.RectangleShape,
+                modifier = Modifier.fillMaxWidth().neoShadow(),
+                shape = RoundedCornerShape(Dimens.RadiusLg),
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -264,9 +265,10 @@ fun PinLoginContent(
                 val isActive = viewModel.pin.length > index
                 Box(
                     modifier = Modifier
-                        .size(16.dp)
-                        .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
-                        .background(if (isActive) Primary else MaterialTheme.colorScheme.surface)
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(Dimens.RadiusMd))
+                        .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusMd))
+                        .background(if (isActive) Primary else MonoWhite)
                 )
             }
         }
@@ -283,26 +285,27 @@ fun PinLoginContent(
                 ) {
                     for (col in 0..2) {
                         val key = keys[row * 3 + col]
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .border(Dimens.BorderWidthStandard, MaterialTheme.colorScheme.outline)
-                                .clickable {
-                                    when (key) {
-                                        "⌫" -> {
-                                            if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1)
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .border(Dimens.BorderWidthStandard, MonoBlack, RoundedCornerShape(Dimens.RadiusMd))
+                                    .clip(RoundedCornerShape(Dimens.RadiusMd))
+                                    .background(if (key == "OK") Primary else MonoWhite)
+                                    .clickable {
+                                        when (key) {
+                                            "⌫" -> {
+                                                if (viewModel.pin.isNotEmpty()) viewModel.pin = viewModel.pin.dropLast(1)
+                                            }
+                                            "OK" -> {
+                                                if (viewModel.loginWithPin()) onLoginSuccess()
+                                            }
+                                            else -> {
+                                                if (viewModel.pin.length < 4) viewModel.pin += key
+                                            }
                                         }
-                                        "OK" -> {
-                                            if (viewModel.loginWithPin()) onLoginSuccess()
-                                        }
-                                        else -> {
-                                            if (viewModel.pin.length < 4) viewModel.pin += key
-                                        }
-                                    }
-                                }
-                                .background(if (key == "OK") Primary else MaterialTheme.colorScheme.surface),
-                            contentAlignment = Alignment.Center
-                        ) {
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
                             Text(
                                 text = key,
                                 fontWeight = FontWeight.Black,
